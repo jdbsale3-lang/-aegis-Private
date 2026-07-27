@@ -1,0 +1,118 @@
+# AEGIS - CI/CD Pipeline
+name: AEGIS CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python deps
+        run: pip install ruff black mypy
+
+      - name: Lint Python (backend)
+        run: |
+          cd backend
+          ruff check .
+          black --check .
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Lint Go (gateway)
+        run: |
+          cd gateway
+          go vet ./...
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: aegis_test
+          POSTGRES_USER: aegis
+          POSTGRES_PASSWORD: aegis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Run Python tests
+        run: |
+          cd backend
+          python -m pytest tests/ -v
+        env:
+          DATABASE_URL: postgresql+asyncpg://aegis:aegis@localhost:5432/aegis_test
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy scan (backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: backend/
+          severity: CRITICAL,HIGH
+
+      - name: Trivy scan (gateway)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: gateway/
+          severity: CRITICAL,HIGH
+
+  build:
+    name: Build & Push
+    needs: [lint, test, security]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: |
+          docker build -t aegis/backend:latest \
+            -f deploy/docker/Dockerfile.backend \
+            backend/
+
+      - name: Build gateway image
+        run: |
+          docker build -t aegis/gateway:latest \
+            -f deploy/docker/Dockerfile.gateway \
+            .

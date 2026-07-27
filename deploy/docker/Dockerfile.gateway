@@ -1,0 +1,20 @@
+# AEGIS MCP Gateway - Dockerfile
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /app
+COPY gateway/go.mod gateway/main.go ./
+RUN go build -o /aegis-gateway .
+
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates curl
+COPY --from=builder /aegis-gateway /usr/local/bin/aegis-gateway
+
+RUN adduser -D -u 1000 aegis
+USER aegis
+
+EXPOSE 8443
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8443/health || exit 1
+
+CMD ["aegis-gateway"]

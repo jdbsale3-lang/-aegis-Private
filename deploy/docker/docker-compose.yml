@@ -1,0 +1,77 @@
+# AEGIS - Local Development Environment
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: aegis
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  kafka:
+    image: redpandadata/redpanda:v23.3.8
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://kafka:9092,external://localhost:19092
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../deploy/docker/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://aegis:aegis@postgres:5432/aegis
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: dev-secret-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../../backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  mcp-gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.gateway
+    ports:
+      - "8443:8443"
+    environment:
+      AEGIS_MCP_PORT: "8443"
+      AEGIS_MCP_SANDBOX: "true"
+      AEGIS_MCP_LOG_TRAFFIC: "true"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
