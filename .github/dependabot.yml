@@ -1,0 +1,33 @@
+# AEGIS — Dependabot config (auto security + version updates)
+version: 2
+
+updates:
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "security"]
+    # FIND-2026-001 lesson: never auto-merge; each security bump is reviewed + regression-gated
+    ignore:
+      - dependency-name: "torch"
+        versions: ["<2.10.0"]   # force bumps past the CVE-2026-24747 floor
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "gomod"
+    directory: "/gateway"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels: ["dependencies", "ci"]
