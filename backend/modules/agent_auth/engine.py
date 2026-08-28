@@ -46,7 +46,7 @@ class PolicyEngine:
                     return ""
             return str(current) if current is not None else ""
 
-        return re.sub(r"\{(\w+(?:\.\w+)*)\}", replace_var, value)
+        return re.sub(r"\{(\w{1,64}(?:\.\w{1,64}){0,8})\}", replace_var, value)
 
     def _match_resource(self, resource_pattern: str, actual_resource: str) -> bool:
         """Match a resource pattern against an actual resource path.
