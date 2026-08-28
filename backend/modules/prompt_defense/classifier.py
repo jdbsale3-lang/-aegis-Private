@@ -300,7 +300,7 @@ class PromptClassifier:
 
         scan_texts = [prompt_lower]
         # P0-2: decode candidate base64 chunks and re-scan the decoded text
-        for chunk in re.findall(r"[A-Za-z0-9+/]{24,}={0,2}", prompt):
+        for chunk in re.findall(r"[A-Za-z0-9+/]{24,64}={0,2}", prompt):
             try:
                 decoded = (
                     __import__("base64")

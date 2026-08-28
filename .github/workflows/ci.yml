@@ -93,6 +93,14 @@ jobs:
           IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
         run: python3 scripts/geo_smoke.py
 
+  regex-lint:
+    name: ReDoS regex lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ReDoS regex linter
+        run: python3 scripts/regex_lint.py
+
   cd-tests:
     name: CD deploy-safety tests
     runs-on: ubuntu-latest
