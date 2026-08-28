@@ -15,7 +15,7 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -49,7 +49,7 @@ jobs:
           --health-cmd pg_isready
           --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -69,7 +69,7 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Trivy scan (backend)
         uses: aquasecurity/trivy-action@master
         with:
@@ -87,7 +87,7 @@ jobs:
     name: Geo / IPinfo smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: IPinfo geo smoke (token from secret)
         env:
           IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
@@ -97,7 +97,7 @@ jobs:
     name: ReDoS regex lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run ReDoS regex linter
         run: python3 scripts/regex_lint.py
 
@@ -105,7 +105,7 @@ jobs:
     name: CD deploy-safety tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Deploy-script logic tests (restore auth entrypoint)
         run: bash scripts/test_deploy_local.sh
 
@@ -113,7 +113,7 @@ jobs:
     name: Security Regression Gate (FIND-2026-001/002)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -163,7 +163,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build backend image
         run: docker build -t aegis/backend:latest -f deploy/docker/Dockerfile.backend backend/
       - name: Build gateway image
