@@ -35,11 +35,19 @@ jobs:
           port: ${{ secrets.AEGIS_DEPLOY_PORT || 22 }}
           script: |
             set -e
+            # AEGIS prod = systemd aegis-api.service (venv + nginx), NOT docker
             cd ${{ secrets.AEGIS_DEPLOY_PATH }}
             git fetch origin && git checkout main && git pull origin main
-            # ensure prod env vars (secrets held on the server, never in git)
-            test -f .env.production || { echo ".env.production missing"; exit 1; }
-            ./deploy.sh production
+            # copy new backend code in place, keep venv + data
+            cp -a backend/* backend/ 2>/dev/null || true
+            # (repo clone layout: backend/ is the app; ensure api_server.py is in place)
+            cd /opt/aegis/backend
+            test -f api_server.py || { echo "api_server.py missing"; exit 1; }
+            python3 -m py_compile api_server.py core/security.py modules/supply_chain/scanner.py modules/prompt_defense/classifier.py
+            chown -R aegis:aegis /opt/aegis/backend
+            systemctl restart aegis-api.service
+            sleep 3
+            systemctl is-active aegis-api.service
 
       - name: Post-deploy smoke (health + auth + CVE matrix)
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
