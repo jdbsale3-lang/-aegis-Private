@@ -77,8 +77,20 @@ class SupplyChainScanner:
     # Known CVEs affecting popular ML packages (MVP - expand from API in production)
     KNOWN_ML_CVES: dict[str, list[dict]] = {
         "torch": [
-            {"cve": "CVE-2026-24747", "cvss": 9.8, "affected": "<2.6.0", "desc": "PyTorch weights_only unpickler RCE via heap corruption"},
+            # FIND-2026-001: CVE-2026-24747 corrected to <2.10.0 (fix shipped 2.10.0, Jan 2026,
+            # NVD + GHSA-63cw-57p8-fm3p). Prior data (<2.6.0) produced false negatives for 2.6.0-2.9.1.
+            {"cve": "CVE-2026-24747", "cvss": 9.8, "affected": "<2.10.0", "fixed": "2.10.0", "desc": "PyTorch weights_only unpickler RCE via heap corruption"},
+            # CVE-2024-22476 (TorchServe): fix target to verify (see AEGIS-PyTorch-CVE-Audit) - TODO confirm latest patched TorchServe
             {"cve": "CVE-2024-22476", "cvss": 7.8, "affected": "<2.2.0", "desc": "TorchServe RCE via malicious model"},
+            # CVE-2025-32434 (GHSA-53q9-r3pm-6pq6, Apr 2025): torch.load weights_only RCE. Critical CVSS 9.8/9.3.
+            # Verified NVD: affected <2.6.0, patched 2.6.0. (NOTE: this is the owner of the old "<2.6.0" range.)
+            {"cve": "CVE-2025-32434", "cvss": 9.8, "affected": "<2.6.0", "fixed": "2.6.0", "desc": "torch.load weights_only=True RCE"},
+            # GHSA-g6v3-crfc-cggj / AIKIDO-2026-220941 (Sep 2025, no assigned CVE): flatbuffer OOB read/write via
+            # torch::load. Verified range 0.0.1-2.0.1, fixed 2.1.0.
+            {"cve": "GHSA-g6v3-crfc-cggj", "cvss": 6.5, "affected": "<2.1.0", "fixed": "2.1.0", "desc": "Out-of-bounds write parsing FlatBuffer via torch::load (arbitrary address access)"},
+            # GHSA-2rj9-7h5r-q4h8 / AIKIDO-2026-636203 (Sep 2025, no assigned CVE; related libuv CVE-2024-24806):
+            # tensorpipe bundles libuv <1.48 -> SSRF via truncated hostnames. Verified range 0.0.1-2.8.0, fixed 2.9.0.
+            {"cve": "GHSA-2rj9-7h5r-q4h8", "cvss": 7.5, "affected": "<2.9.0", "fixed": "2.9.0", "desc": "SSRF via bundled tensorpipe/libuv truncated hostnames (CVE-2024-24806 related)"},
             {"cve": "CVE-2023-48022", "cvss": 9.8, "affected": "<2.1.0", "desc": "Pickle deserialization RCE in torch.load"},
         ],
         "tensorflow": [
@@ -261,7 +273,10 @@ class SupplyChainScanner:
                         description=f"Package {package_name} {version} is affected by {cve['cve']} (CVSS: {cve['cvss']}). "
                                     f"Affected versions: {affected}",
                         location=f"package:{package_name}@{version}",
-                        recommendation=f"Upgrade {package_name} to version >{affected.replace('<', '')}",
+                        recommendation=(
+                            f"Upgrade {package_name} to version {cve.get('fixed', '>'+affected.replace('<', ''))}"
+                            + (" or later" if cve.get("fixed") else "")
+                        ),
                         cve_id=cve["cve"],
                         cvss_score=cve["cvss"],
                     ))

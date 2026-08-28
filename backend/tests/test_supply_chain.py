@@ -117,3 +117,22 @@ def test_empty_scan():
     result = scanner.scan_model("model.safetensors")
     assert result.passed is True
     assert len(result.findings) == 0
+
+def test_cve_2026_24747_range_regression():
+    """FIND-2026-001 regression: torch 2.6.0 & 2.9.1 MUST fail, 2.10.0 MUST pass."""
+    from modules.supply_chain.scanner import SupplyChainScanner
+    sc = SupplyChainScanner(enable_cve_check=True, enable_deep_scan=False)
+    for ver in ("2.6.0", "2.9.1"):
+        res = sc.scan_package("torch", ver)
+        assert res.passed is False, f"torch@{ver} must be flagged (CVE-2026-24747 affects <2.10.0) - got passed={res.passed}"
+        assert any("2026-24747" in str(f.cve_id or "") for f in res.findings), f"torch@{ver} missing 24747 finding"
+    res = sc.scan_package("torch", "2.10.0")
+    assert res.passed is True, f"torch@2.10.0 must pass (fixed) - got passed={res.passed}"
+
+def test_cve_remediation_points_to_fixed():
+    """Recommendation must say 2.10.0 or later (not the stale >2.6.0)."""
+    from modules.supply_chain.scanner import SupplyChainScanner
+    sc = SupplyChainScanner(enable_cve_check=True, enable_deep_scan=False)
+    res = sc.scan_package("torch", "2.1.0")
+    recs = [f.recommendation for f in res.findings if "24747" in str(f.cve_id or "")]
+    assert recs and "2.10.0" in recs[0], f"remediation should point to 2.10.0, got {recs[:1]}"
