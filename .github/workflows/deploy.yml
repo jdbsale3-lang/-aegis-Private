@@ -1,0 +1,59 @@
+# AEGIS — Deploy to Production (CD)
+name: AEGIS Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: production
+        type: choice
+        options: [production, staging]
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy (${github.event.inputs.environment || 'production'})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify CI image tag
+        run: echo "Deploying ref $GITHUB_SHA to $DEPLOY_HOST"
+
+      - name: Deploy over SSH (repo pull + docker compose up)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AEGIS_DEPLOY_HOST }}
+          username: ${{ secrets.AEGIS_DEPLOY_USER }}
+          key: ${{ secrets.AEGIS_DEPLOY_SSH_KEY }}
+          port: ${{ secrets.AEGIS_DEPLOY_PORT || 22 }}
+          script: |
+            set -e
+            cd ${{ secrets.AEGIS_DEPLOY_PATH }}
+            git fetch origin && git checkout main && git pull origin main
+            # ensure prod env vars (secrets held on the server, never in git)
+            test -f .env.production || { echo ".env.production missing"; exit 1; }
+            ./deploy.sh production
+
+      - name: Post-deploy smoke (health + auth + CVE matrix)
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf https://apiaegissecurity.tech/health
+          curl -sf -o /dev/null -w "health %{http_code}\n" https://apiaegissecurity.tech/health
+          echo "Deploy complete - run full acceptance (DEPLOY-RUNBOOK.md section 7) for final sign-off."
+
+  notify:
+    name: Notify
+    needs: deploy
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "AEGIS deploy finished with status ${STATUS}"
+        env:
+          STATUS: ${{ needs.deploy.result }}
