@@ -33,13 +33,11 @@ jobs:
           username: ${{ secrets.AEGIS_DEPLOY_USER }}
           key: ${{ secrets.AEGIS_DEPLOY_SSH_KEY }}
           port: ${{ secrets.AEGIS_DEPLOY_PORT || 22 }}
+
           script: |
             set -e
             cd ${{ secrets.AEGIS_DEPLOY_PATH }}
-            git fetch origin && git checkout main && git pull origin main
-            # ensure prod env vars (secrets held on the server, never in git)
-            test -f .env.production || { echo ".env.production missing"; exit 1; }
-            ./deploy.sh production
+            ./deploy.sh
 
       - name: Post-deploy smoke (health + auth + CVE matrix)
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
