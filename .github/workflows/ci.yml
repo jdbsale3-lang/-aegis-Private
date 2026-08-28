@@ -83,6 +83,16 @@ jobs:
           scan-ref: gateway/
           severity: CRITICAL,HIGH
 
+  geo:
+    name: Geo / IPinfo smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: IPinfo geo smoke (token from secret)
+        env:
+          IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
+        run: python3 scripts/geo_smoke.py
+
   regression:
     name: Security Regression Gate (FIND-2026-001/002)
     runs-on: ubuntu-latest
