@@ -38,6 +38,20 @@ class RateLimiter:
         self.requests[key].append(now)
         return False
 
+    def remaining(self, key: str) -> int:
+        """Quota remaining in the current window (P0-4 audit fix)."""
+        now = time.time()
+        window_start = now - self.window_seconds
+        self.requests[key] = [t for t in self.requests[key] if t > window_start]
+        return max(0, self.max_requests - len(self.requests[key]))
+
+    def reset_in(self, key: str) -> int:
+        """Seconds until the window resets."""
+        if not self.requests.get(key):
+            return self.window_seconds
+        oldest = min(self.requests[key])
+        return max(1, int(self.window_seconds - (time.time() - oldest)))
+
 
 # Global rate limiter instances
 _general_limiter = RateLimiter(max_requests=100, window_seconds=60)
@@ -77,11 +91,23 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={"detail": "Rate limit exceeded. Try again later."},
-                headers={"Retry-After": "60"},
+                headers={
+                    "Retry-After": str(_general_limiter.reset_in(client_ip)),
+                    "X-RateLimit-Limit": str(_general_limiter.max_requests),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time()) + _general_limiter.reset_in(client_ip)),
+                    "X-RateLimit-Window": str(_general_limiter.window_seconds),
+                },
             )
 
         # Process the request
         response = await call_next(request)
+
+        # Quota headers on every response (P0-4 audit fix - clients can self-throttle)
+        response.headers["X-RateLimit-Limit"] = str(_general_limiter.max_requests)
+        response.headers["X-RateLimit-Remaining"] = str(_general_limiter.remaining(client_ip))
+        response.headers["X-RateLimit-Reset"] = str(int(time.time()) + _general_limiter.reset_in(client_ip))
+        response.headers["X-RateLimit-Window"] = str(_general_limiter.window_seconds)
 
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"

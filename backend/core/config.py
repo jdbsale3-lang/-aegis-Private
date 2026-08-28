@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["*"]
     API_KEY: Optional[str] = None  # Set in production
 
+    AEGIS_ADMIN_TOKEN: str = ""  # P0-3 admin token for key management
+
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://aegis:aegis@localhost:5432/aegis"
     DATABASE_POOL_SIZE: int = 20

@@ -113,6 +113,19 @@ class SupplyChainScanner:
         "pymilvus": [
             {"cve": "CVE-2025-64513", "cvss": 9.3, "affected": "<2.5.0", "desc": "Milvus auth bypass using hardcoded @@milvus-member@@ constant"},
         ],
+        # ── npm/JS ecosystem (P0-1 audit fix: lodash passed=true was a coverage gap) ──
+        "lodash": [
+            {"cve": "CVE-2020-8203", "cvss": 7.4, "affected": "<4.17.20", "fixed": "4.17.20", "desc": "Prototype pollution via defaultsDeep"},
+            {"cve": "CVE-2021-23337", "cvss": 7.2, "affected": "<4.17.21", "fixed": "4.17.21", "desc": "Command injection via template function"},
+            {"cve": "CVE-2023-26136", "cvss": 7.5, "affected": "<4.17.26", "fixed": "4.17.26", "desc": "ReDoS via zipObjectDeep"},
+        ],
+        "express": [
+            {"cve": "CVE-2024-29041", "cvss": 6.1, "affected": "<4.19.0", "fixed": "4.19.0", "desc": "Open redirect via res.redirect"},
+            {"cve": "CVE-2025-46565", "cvss": 7.5, "affected": "<4.21.2", "fixed": "4.21.2", "desc": "ReDoS in path-to-regexp (0.1.x)"},
+        ],
+        "axios": [
+            {"cve": "CVE-2023-45857", "cvss": 7.5, "affected": "<1.6.0", "fixed": "1.6.0", "desc": "SSRF via absolute URL in proxy"},
+        ],
         "copilot": [
             {"cve": "CVE-2025-53773", "cvss": 9.6, "affected": "<1.0.0", "desc": "GitHub Copilot RCE via crafted code completion payload"},
         ],
@@ -230,7 +243,9 @@ class SupplyChainScanner:
         # Multiple findings increase risk
         risk_score = min(1.0, risk_score + (len([f for f in findings if f.severity in ("critical", "high")]) * 0.15))
 
-        passed = risk_score < 0.5
+        # P0-1 gate fix (hacker audit): ANY CVE finding means FAILED - a medium-only
+        # finding (e.g. numpy CVE-2021-34141 cvss 5.5) must not pass as "safe".
+        passed = len(findings) == 0
         severity_count = {"critical": 0, "high": 0, "medium": 0, "low": 0}
         for f in findings:
             severity_count[f.severity] = severity_count.get(f.severity, 0) + 1
@@ -369,7 +384,9 @@ class SupplyChainScanner:
             risk_score = max(risk_score, severity_weights.get(f.severity, 0.0))
         risk_score = min(1.0, risk_score + (len([f for f in findings if f.severity in ("critical", "high")]) * 0.1))
 
-        passed = risk_score < 0.5
+        # P0-1 gate fix (hacker audit): ANY CVE finding means FAILED - a medium-only
+        # finding (e.g. numpy CVE-2021-34141 cvss 5.5) must not pass as "safe".
+        passed = len(findings) == 0
         severity_count = {"critical": 0, "high": 0, "medium": 0, "low": 0}
         for f in findings:
             severity_count[f.severity] = severity_count.get(f.severity, 0) + 1
@@ -403,7 +420,9 @@ class SupplyChainScanner:
             risk_score = max(risk_score, severity_weights.get(f.severity, 0.0))
         risk_score = min(1.0, risk_score)
 
-        passed = risk_score < 0.5
+        # P0-1 gate fix (hacker audit): ANY CVE finding means FAILED - a medium-only
+        # finding (e.g. numpy CVE-2021-34141 cvss 5.5) must not pass as "safe".
+        passed = len(findings) == 0
         latency = (time.time() - start) * 1000
 
         return ScanResult(

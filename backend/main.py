@@ -19,6 +19,7 @@ from modules.model_extraction.router import router as extraction_router
 from modules.vector_security.router import router as vector_security_router
 from modules.self_protection.router import router as self_protection_router
 from modules.advanced_defenses.router import router as advanced_defenses_router
+from modules.key_management.router import router as key_management_router
 
 # Configure logging
 logging.basicConfig(
@@ -85,6 +86,7 @@ app.include_router(extraction_router)
 app.include_router(vector_security_router)
 app.include_router(self_protection_router)
 app.include_router(advanced_defenses_router)
+app.include_router(key_management_router)
 
 
 # Health check

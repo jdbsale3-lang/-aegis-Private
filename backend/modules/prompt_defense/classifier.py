@@ -107,6 +107,31 @@ class PromptClassifier:
              "category": "prompt_leakage_phrase", "severity": "high"},
             {"pattern": r"(reveal|show|print|output|leak|expose|dump|extract)\s+(your|the|this)?\s*(system|hidden|secret|internal)?\s*(prompt|instructions|system\s+message|configuration)\b",
              "category": "prompt_leakage", "severity": "high"},
+            # P0-2 (hacker audit): multilingual injection (es/fr/de)
+            {"pattern": r"(ignora|ignorad|olvida|descarta)\s+(todas\s+|toda\s+)?(las\s+)?(instrucciones|indicaciones|ordenes|las\s+instrucciones)?\s*(anteriores|previas)?",
+             "category": "multilingual_injection_es", "severity": "high"},
+            {"pattern": r"(revela|muestra|imprime|expon)\s+(el|tu)\s+(prompt|sistema|instrucciones)\s*(original)?",
+             "category": "prompt_leakage_es", "severity": "critical"},
+            {"pattern": r"(ignorer|oubliez)\s+(toutes\s+)?(les\s+)?(instructions|consignes)\s*(précédentes)?",
+             "category": "multilingual_injection_fr", "severity": "high"},
+            {"pattern": r"(révèle|affiche|montre)\s+(le|ton)\s+(prompt|système)\b",
+             "category": "prompt_leakage_fr", "severity": "critical"},
+            {"pattern": r"(ignoriere|vergiss)\s+(alle\s+)?(vorherigen\s+)?(anweisungen|instruktionen)",
+             "category": "multilingual_injection_de", "severity": "high"},
+            {"pattern": r"(zeig|verrate|enthülle)\s+(den|deinen)\s+(systemprompt|prompt)\b",
+             "category": "prompt_leakage_de", "severity": "critical"},
+            # P0-2: indirect / document-style injection
+            {"pattern": r"(parse|read|process|analyse|analyze)\s+(the\s+)?(attached|embedded|following)\s+(document|file|pdf|email|text)",
+             "category": "indirect_document", "severity": "medium"},
+            {"pattern": r"output\s+(every|all|your)\s+(internal|original)\s+(instruction|prompt|system)\s*(s)?\b",
+             "category": "indirect_extraction", "severity": "high"},
+            {"pattern": r"(follow|obey|execute)\s+(the\s+)?(instructions|commands|prompts)\s+(in|inside|within)\s+(the\s+)?(document|file|text|attached)",
+             "category": "indirect_follow", "severity": "high"},
+            # P0-2: base64 / encoded payload heuristic (long tokens)
+            {"pattern": r"[A-Za-z0-9+/]{32,}={0,2}",
+             "category": "encoded_payload", "severity": "medium"},
+            {"pattern": r"(decode|decrypt|deobfuscate|base64\s*decode|\bunescape)\s+(and\s+)?(execute|run|follow|perform|reveal)?",
+             "category": "encoding_bypass", "severity": "high"},
             # LoRD extraction patterns
             {"pattern": r"(query|sample|generate)\s+(with|using)\s+(different|various|multiple)\s+(temperatures|seeds|parameters)",
              "category": "model_extraction", "severity": "high"},
@@ -156,11 +181,24 @@ class PromptClassifier:
 
         severity_map = {"critical": 0.95, "high": 0.75, "medium": 0.5, "low": 0.25}
 
-        for sig in self.attack_signatures:
-            if re.search(sig["pattern"], prompt_lower, re.IGNORECASE):
-                triggered.append(sig["category"])
-                sev = severity_map.get(sig["severity"], 0.5)
-                max_severity = max(max_severity, sev)
+        scan_texts = [prompt_lower]
+        # P0-2: decode candidate base64 chunks and re-scan the decoded text
+        for chunk in re.findall(r"[A-Za-z0-9+/]{24,}={0,2}", prompt):
+            try:
+                decoded = __import__("base64").b64decode(chunk).decode("utf-8", errors="ignore")
+                if decoded and any(c.isalpha() for c in decoded):
+                    scan_texts.append(decoded.lower())
+            except Exception:
+                pass
+
+        for text in scan_texts:
+            for sig in self.attack_signatures:
+                if re.search(sig["pattern"], text, re.IGNORECASE):
+                    cat = sig["category"]
+                    if cat not in triggered:
+                        triggered.append(cat)
+                    sev = severity_map.get(sig["severity"], 0.5)
+                    max_severity = max(max_severity, sev)
 
         self._last_triggered = triggered
         return max_severity
@@ -223,6 +261,26 @@ class PromptClassifier:
 
         ensemble = self._compute_ensemble([semantic, syntactic, behavioral])
         verdict = self._get_verdict(ensemble)
+
+        # P0-2 hard-block (hacker audit): a triggered high/critical attack category
+        # must never surface as "safe" even if the density-weighted ensemble is low.
+        HARD_BLOCK = {
+            "direct_injection", "role_play", "jailbreak", "prompt_leakage",
+            "prompt_leakage_phrase", "indirect_extraction", "indirect_follow",
+            "encoding_bypass", "encoded_payload", "system_prompt",
+            "multilingual_injection_es", "prompt_leakage_es",
+            "multilingual_injection_fr", "prompt_leakage_fr",
+            "multilingual_injection_de", "prompt_leakage_de",
+        }
+        triggered = set(getattr(self, "_last_triggered", []) or [])
+        if triggered & HARD_BLOCK:
+            if ensemble < 0.3:
+                ensemble = 0.3
+            verdict = "malicious" if ensemble >= 0.3 else verdict
+            if verdict == "safe":
+                verdict = "suspicious"
+            if ensemble >= 0.45 or verdict == "malicious":
+                ensemble = max(ensemble, 0.8)
 
         latency = (time.time() - start) * 1000  # ms
 
