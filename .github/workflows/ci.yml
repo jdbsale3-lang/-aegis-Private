@@ -106,12 +106,14 @@ jobs:
       - name: CVE range regression (local suite)
         run: cd backend && python -m pytest tests/test_supply_chain.py -v
       - name: Live smoke + CVE matrix (post-deploy gate; runs on main + manual)
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.AEGIS_TEST_KEY != '' }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           cd backend
           AEGIS_TEST_KEY="${{ secrets.AEGIS_TEST_KEY }}" python3 - <<'EOF'
-          import json, os, urllib.request
-          K = os.environ["AEGIS_TEST_KEY"]
+          import json, os, sys, urllib.request
+          K = os.environ.get("AEGIS_TEST_KEY", "")
+          if not K:
+              print("SKIP: AEGIS_TEST_KEY not set"); sys.exit(0)
           def post(path, body):
               req = urllib.request.Request("https://apiaegissecurity.tech"+path,
                   data=json.dumps(body).encode(),
