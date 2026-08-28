@@ -3,24 +3,27 @@
 # All 8 modules accessible via HTTP API
 
 import logging
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from modules.prompt_defense.router import router as prompt_defense_router
-from modules.agent_auth.router import router as agent_auth_router
-from modules.rag_security.router import router as rag_security_router
-from modules.supply_chain.router import router as supply_chain_router
-from modules.model_extraction.router import router as extraction_router
-from modules.vector_security.router import router as vector_security_router
-from modules.self_protection.router import router as self_protection_router
 from modules.advanced_defenses.router import router as advanced_defenses_router
+from modules.agent_auth.router import router as agent_auth_router
+from modules.model_extraction.router import router as extraction_router
+from modules.prompt_defense.router import router as prompt_defense_router
+from modules.rag_security.router import router as rag_security_router
+from modules.self_protection.router import router as self_protection_router
+from modules.supply_chain.router import router as supply_chain_router
+from modules.vector_security.router import router as vector_security_router
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(message)s"
+)
 logger = logging.getLogger("aegis-api")
 
 app = FastAPI(
@@ -88,6 +91,7 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
+
+    port = int(os.environ.get("PORT", "8000"))
     logger.info(f"Starting AEGIS API server on port {port}")
     uvicorn.run("api_server:app", host="0.0.0.0", port=port, log_level="info")

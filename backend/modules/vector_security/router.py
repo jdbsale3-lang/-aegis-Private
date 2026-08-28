@@ -1,20 +1,20 @@
 # AEGIS Module 7: Vector Store Security - API Router
 
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from modules.vector_security.guard import (
-    VectorStoreSecurity, VectorRecord, AccessPolicy, QueryAuditEntry,
+    AccessPolicy,
+    VectorStoreSecurity,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/vector-security", tags=["vector-security"])
 
-_guard: Optional[VectorStoreSecurity] = None
+_guard: VectorStoreSecurity | None = None
 
 
 def get_guard() -> VectorStoreSecurity:
@@ -93,7 +93,9 @@ async def check_access(
     guard: VectorStoreSecurity = Depends(get_guard),
 ):
     """Check if a user has access to a collection."""
-    granted, reason = guard.check_access(request.user_id, request.user_roles, request.collection)
+    granted, reason = guard.check_access(
+        request.user_id, request.user_roles, request.collection
+    )
     return CheckAccessResponse(granted=granted, reason=reason)
 
 
@@ -122,7 +124,9 @@ async def detect_reconstruction(
     guard: VectorStoreSecurity = Depends(get_guard),
 ):
     """Detect potential vector reconstruction attacks."""
-    alert = guard.detect_reconstruction(request.user_id, request.collection, request.recent_queries)
+    alert = guard.detect_reconstruction(
+        request.user_id, request.collection, request.recent_queries
+    )
     if alert:
         return {"alert": alert.__dict__, "threat_detected": True}
     return {"alert": None, "threat_detected": False}

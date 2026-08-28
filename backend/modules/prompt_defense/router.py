@@ -1,11 +1,9 @@
 # AEGIS Module 1: Prompt Defense API Routes
 
 import hashlib
-import json
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from core.config import settings
@@ -16,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/prompt", tags=["prompt-defense"])
 
 # Singleton classifier instance
-_classifier: Optional[PromptClassifier] = None
+_classifier: PromptClassifier | None = None
 
 
 def get_classifier() -> PromptClassifier:
@@ -31,9 +29,10 @@ def get_classifier() -> PromptClassifier:
 
 # --- Request/Response Models ---
 
+
 class AnalyzeRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=32000)
-    context: Optional[dict] = Field(default=None, description="Application context")
+    context: dict | None = Field(default=None, description="Application context")
     mode: str = Field(default="block", pattern="^(block|flag|monitor)$")
 
 
@@ -55,7 +54,7 @@ class AnalyzeResponse(BaseModel):
 
 class BatchAnalyzeRequest(BaseModel):
     prompts: list[str] = Field(..., min_length=1, max_length=100)
-    context: Optional[dict] = None
+    context: dict | None = None
     mode: str = Field(default="block", pattern="^(block|flag|monitor)$")
 
 
@@ -68,16 +67,17 @@ class SignatureModel(BaseModel):
     pattern: str
     category: str
     severity: str = "medium"
-    description: Optional[str] = None
-    reference: Optional[str] = None
+    description: str | None = None
+    reference: str | None = None
 
 
 # --- Routes ---
 
+
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_prompt(
     request: AnalyzeRequest,
-    x_api_key: Optional[str] = Header(None),
+    x_api_key: str | None = Header(None),
     classifier: PromptClassifier = Depends(get_classifier),
 ):
     """Analyze a single prompt for injection attacks using the ensemble classifier."""
@@ -95,7 +95,9 @@ async def analyze_prompt(
     elif request.mode == "flag" and result.verdict == "suspicious":
         action = "flag"
     elif request.mode == "block":
-        action = {"safe": "allow", "suspicious": "flag", "malicious": "block"}[result.verdict]
+        action = {"safe": "allow", "suspicious": "flag", "malicious": "block"}[
+            result.verdict
+        ]
     else:
         action = "allow"
 
@@ -121,26 +123,31 @@ async def batch_analyze(
 ):
     """Batch analyze multiple prompts."""
     import time
+
     start = time.time()
 
     results = []
     for prompt in request.prompts:
         result = classifier.analyze(prompt)
         request_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
-        action = {"safe": "allow", "suspicious": "flag", "malicious": "block"}[result.verdict]
-        results.append(AnalyzeResponse(
-            verdict=result.verdict,
-            score=result.ensemble_score,
-            classifier_scores=ClassifierScores(
-                semantic=result.semantic_score,
-                syntactic=result.syntactic_score,
-                behavioral=result.behavioral_score,
-            ),
-            triggered_rules=result.triggered_rules,
-            request_hash=request_hash,
-            latency_ms=result.latency_ms,
-            action=action,
-        ))
+        action = {"safe": "allow", "suspicious": "flag", "malicious": "block"}[
+            result.verdict
+        ]
+        results.append(
+            AnalyzeResponse(
+                verdict=result.verdict,
+                score=result.ensemble_score,
+                classifier_scores=ClassifierScores(
+                    semantic=result.semantic_score,
+                    syntactic=result.syntactic_score,
+                    behavioral=result.behavioral_score,
+                ),
+                triggered_rules=result.triggered_rules,
+                request_hash=request_hash,
+                latency_ms=result.latency_ms,
+                action=action,
+            )
+        )
 
     total_time = (time.time() - start) * 1000
     return BatchAnalyzeResponse(results=results, total_time_ms=round(total_time, 2))
@@ -149,7 +156,10 @@ async def batch_analyze(
 @router.get("/signatures")
 async def list_signatures(classifier: PromptClassifier = Depends(get_classifier)):
     """List all active attack signatures."""
-    return {"signatures": classifier.attack_signatures, "count": len(classifier.attack_signatures)}
+    return {
+        "signatures": classifier.attack_signatures,
+        "count": len(classifier.attack_signatures),
+    }
 
 
 @router.get("/health")

@@ -1,10 +1,12 @@
 # AEGIS - Audit Log Model
 
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import String, Integer, DateTime, Float, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from datetime import UTC, datetime
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
+
 from core.database import Base
 
 
@@ -34,7 +36,7 @@ class AuditLog(Base):
     metadata: Mapped[dict] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         index=True,
     )
 
@@ -53,8 +55,10 @@ class AttackSignature(Base):
         String(20), nullable=False, default="medium"
     )  # critical | high | medium | low
     description: Mapped[str] = mapped_column(String(1000), nullable=True)
-    reference: Mapped[str] = mapped_column(String(500), nullable=True)  # CVE or research link
+    reference: Mapped[str] = mapped_column(
+        String(500), nullable=True
+    )  # CVE or research link
     active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

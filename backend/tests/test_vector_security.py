@@ -1,11 +1,15 @@
 # Tests for AEGIS Module 7: Vector Store Security
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from modules.vector_security.guard import (
-    VectorStoreSecurity, VectorRecord, AccessPolicy, QueryAuditEntry,
+    AccessPolicy,
+    QueryAuditEntry,
+    VectorRecord,
+    VectorStoreSecurity,
 )
 
 
@@ -79,7 +83,9 @@ def test_privatize_query_result():
     guard = VectorStoreSecurity()
     vectors = [[1.0, 2.0], [3.0, 4.0]]
     similarities = [0.9, 0.8]
-    private_vectors, private_similarities = guard.privatize_query_result(vectors, similarities)
+    private_vectors, private_similarities = guard.privatize_query_result(
+        vectors, similarities
+    )
     assert len(private_vectors) == 2
     assert len(private_similarities) == 2
     assert private_vectors != vectors  # Noise applied
@@ -148,16 +154,28 @@ def test_reconstruction_not_triggered():
 
 def test_audit_logging():
     guard = VectorStoreSecurity()
-    guard.log_query(QueryAuditEntry(
-        query_id="q1", user_id="user_a", collection="col1",
-        access_granted=True, vector_count=5, timestamp=1000.0,
-        risk_level="low",
-    ))
-    guard.log_query(QueryAuditEntry(
-        query_id="q2", user_id="user_b", collection="col1",
-        access_granted=False, vector_count=0, timestamp=1001.0,
-        risk_level="high",
-    ))
+    guard.log_query(
+        QueryAuditEntry(
+            query_id="q1",
+            user_id="user_a",
+            collection="col1",
+            access_granted=True,
+            vector_count=5,
+            timestamp=1000.0,
+            risk_level="low",
+        )
+    )
+    guard.log_query(
+        QueryAuditEntry(
+            query_id="q2",
+            user_id="user_b",
+            collection="col1",
+            access_granted=False,
+            vector_count=0,
+            timestamp=1001.0,
+            risk_level="high",
+        )
+    )
     entries = guard.get_recent_audit()
     assert len(entries) == 2
     entries_filtered = guard.get_recent_audit(user_id="user_a")

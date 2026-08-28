@@ -1,0 +1,31 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI injectable dependencies are evaluated by the framework at request
+# time, not at import time - standard, intentional FastAPI pattern.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Header",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Cookie",
+    "fastapi.Security",
+]
+[tool.ruff.lint.per-file-ignores]
+# Intentional patterns (documented; config lives in backend/ so patterns are backend-relative):
+#  RUF012  - class-level constant collections are immutable-by-convention, not ClassVar instances
+#  SIM102  - nested guard ifs read clearer for security checks
+#  BLE001  - top-level resilience: never crash the API on an unexpected exception
+#  S110    - decode probes failing is the expected negative branch
+#  LOG014  - FastAPI exception handlers ARE the exception context
+"**" = ["RUF012", "SIM102", "BLE001", "S110", "LOG014"]
+"**/tests/**" = ["RUF059", "F841"]

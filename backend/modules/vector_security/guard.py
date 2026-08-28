@@ -1,19 +1,15 @@
 # AEGIS Module 7: Vector Store Security
 # Encryption, differential privacy, and access control for vector databases
 
-import os
-import json
-import hashlib
 import base64
+import hashlib
+import json
 import logging
 import math
 import random
-import hmac
 from dataclasses import dataclass, field
-from typing import Optional
+
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +68,13 @@ class VectorStoreSecurity:
     SENSITIVITY_DEFAULT = 2.0  # L2 sensitivity of the query function
     NOISE_SCALE_DEFAULT = 0.01  # Scale of noise for the random response mechanism
 
-    def __init__(self, encryption_key: Optional[str] = None, epsilon: float = 1.0):
+    def __init__(self, encryption_key: str | None = None, epsilon: float = 1.0):
         self.encryption_key = encryption_key or Fernet.generate_key()
-        self.cipher = Fernet(self.encryption_key if isinstance(self.encryption_key, bytes)
-                             else self.encryption_key.encode())
+        self.cipher = Fernet(
+            self.encryption_key
+            if isinstance(self.encryption_key, bytes)
+            else self.encryption_key.encode()
+        )
         self.epsilon = epsilon
         self.policies: dict[str, AccessPolicy] = {}
         self.audit_log: list[QueryAuditEntry] = []
@@ -152,7 +151,9 @@ class VectorStoreSecurity:
         # Cap noise to prevent extreme values from single queries
         return max(-scale * 5, min(scale * 5, raw))
 
-    def add_noise_to_vector(self, vector: list[float], epsilon: Optional[float] = None) -> list[float]:
+    def add_noise_to_vector(
+        self, vector: list[float], epsilon: float | None = None
+    ) -> list[float]:
         """
         Add calibrated Laplace noise to a vector for differential privacy.
         Each dimension gets independent noise scaled by (sensitivity / epsilon).
@@ -165,7 +166,9 @@ class VectorStoreSecurity:
 
         return [v + self._laplace_noise(scale) for v in vector]
 
-    def add_noise_to_similarity(self, similarity: float, epsilon: Optional[float] = None) -> float:
+    def add_noise_to_similarity(
+        self, similarity: float, epsilon: float | None = None
+    ) -> float:
         """
         Add noise to a similarity score for differential privacy.
         Used when returning similarity scores to prevent reconstruction.
@@ -175,8 +178,9 @@ class VectorStoreSecurity:
         noisy = similarity + self._laplace_noise(scale)
         return max(0.0, min(1.0, noisy))
 
-    def privatize_query_result(self, vectors: list[list[float]],
-                               similarities: list[float]) -> tuple[list[list[float]], list[float]]:
+    def privatize_query_result(
+        self, vectors: list[list[float]], similarities: list[float]
+    ) -> tuple[list[list[float]], list[float]]:
         """
         Apply differential privacy to a query result.
         Noises both vectors and similarity scores.
@@ -198,8 +202,9 @@ class VectorStoreSecurity:
             del self.policies[collection]
             logger.info(f"Access policy removed for collection '{collection}'")
 
-    def check_access(self, user_id: str, user_roles: list[str],
-                     collection: str) -> tuple[bool, str]:
+    def check_access(
+        self, user_id: str, user_roles: list[str], collection: str
+    ) -> tuple[bool, str]:
         """
         Check if a user has access to a collection.
         Returns (granted, reason).
@@ -215,7 +220,10 @@ class VectorStoreSecurity:
             if user_id in policy.allowed_users:
                 return True, f"User '{user_id}' is explicitly allowed"
             # If allowed_users is set but user is NOT in it, deny
-            return False, f"User '{user_id}' is not in the allowed users list for collection '{collection}'"
+            return (
+                False,
+                f"User '{user_id}' is not in the allowed users list for collection '{collection}'",
+            )
 
         # Check role whitelist
         if policy.allowed_roles:
@@ -223,7 +231,10 @@ class VectorStoreSecurity:
                 if role in policy.allowed_roles:
                     return True, f"Role '{role}' is allowed access"
 
-            return False, f"User '{user_id}' with roles {user_roles} does not match policy"
+            return (
+                False,
+                f"User '{user_id}' with roles {user_roles} does not match policy",
+            )
 
         # No restrictions
         return True, "No user/role restrictions"
@@ -247,8 +258,9 @@ class VectorStoreSecurity:
         entropy = -sum((c / total) * math.log2(c / total) for c in freq.values())
         return entropy
 
-    def detect_reconstruction(self, user_id: str, collection: str,
-                              recent_queries: list[str]) -> Optional[ReconstructionAlert]:
+    def detect_reconstruction(
+        self, user_id: str, collection: str, recent_queries: list[str]
+    ) -> ReconstructionAlert | None:
         """
         Detect potential vector reconstruction attacks.
         Looks for systematic query patterns that could reconstruct training data.
@@ -260,10 +272,12 @@ class VectorStoreSecurity:
         entropy = self._compute_query_entropy(recent_queries)
         if entropy < 3.0 and len(recent_queries) > 50:
             return ReconstructionAlert(
-                alert_id=hashlib.md5(f"rec-{user_id}-{collection}".encode()).hexdigest()[:12],
+                alert_id=hashlib.md5(
+                    f"rec-{user_id}-{collection}".encode()
+                ).hexdigest()[:12],
                 severity="high",
                 description=f"Possible reconstruction attack: low entropy ({entropy:.2f}) "
-                            f"with high query volume ({len(recent_queries)} queries)",
+                f"with high query volume ({len(recent_queries)} queries)",
                 collection=collection,
                 user_id=user_id,
                 confidence=0.7,
@@ -278,10 +292,12 @@ class VectorStoreSecurity:
         query_ratio = len(query_hashes) / max(len(recent_queries), 1)
         if query_ratio < 0.1 and len(recent_queries) > 100:
             return ReconstructionAlert(
-                alert_id=hashlib.md5(f"rec2-{user_id}-{collection}".encode()).hexdigest()[:12],
+                alert_id=hashlib.md5(
+                    f"rec2-{user_id}-{collection}".encode()
+                ).hexdigest()[:12],
                 severity="medium",
                 description=f"High query repetition detected: {len(recent_queries)} queries with only "
-                            f"{len(query_hashes)} unique patterns",
+                f"{len(query_hashes)} unique patterns",
                 collection=collection,
                 user_id=user_id,
                 confidence=0.6,
@@ -299,9 +315,12 @@ class VectorStoreSecurity:
         if len(self.audit_log) > 10000:
             self.audit_log = self.audit_log[-5000:]
 
-    def get_recent_audit(self, user_id: Optional[str] = None,
-                         collection: Optional[str] = None,
-                         limit: int = 100) -> list[QueryAuditEntry]:
+    def get_recent_audit(
+        self,
+        user_id: str | None = None,
+        collection: str | None = None,
+        limit: int = 100,
+    ) -> list[QueryAuditEntry]:
         """Get recent audit entries, optionally filtered."""
         entries = self.audit_log
         if user_id:
@@ -312,11 +331,14 @@ class VectorStoreSecurity:
 
     # ---- Key Rotation ----
 
-    def rotate_key(self, new_key: Optional[str] = None):
+    def rotate_key(self, new_key: str | None = None):
         """Rotate the encryption key. In production, re-encrypt all data."""
         self.encryption_key = new_key or Fernet.generate_key()
-        self.cipher = Fernet(self.encryption_key if isinstance(self.encryption_key, bytes)
-                             else self.encryption_key.encode())
+        self.cipher = Fernet(
+            self.encryption_key
+            if isinstance(self.encryption_key, bytes)
+            else self.encryption_key.encode()
+        )
         logger.info("Encryption key rotated")
 
     def get_key_fingerprint(self) -> str:

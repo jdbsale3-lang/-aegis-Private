@@ -1,13 +1,12 @@
 # AEGIS Advanced Defenses Module
 # Fills the 5 critical 30-day defense gaps
 
-import re
-import json
 import hashlib
-import random
+import json
 import logging
-from dataclasses import dataclass, field
-from typing import Optional
+import random
+import re
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,9 @@ logger = logging.getLogger(__name__)
 class MultiModalAnalysisResult:
     threat_detected: bool
     threat_score: float
-    threat_type: str  # adversarial_perturbation | text_in_image | incoherent_modality | safe
+    threat_type: (
+        str  # adversarial_perturbation | text_in_image | incoherent_modality | safe
+    )
     details: list[str]
     confidence: float
 
@@ -80,26 +81,41 @@ class AdvancedDefenses:
     WATERMARK_LAYERS = {
         "lexical": {
             "substitutions": [
-                ("excellent", "exceptional"), ("important", "consequential"),
-                ("solution", "resolution"), ("method", "methodology"),
-                ("result", "outcome"), ("analysis", "examination"),
-                ("system", "framework"), ("process", "proceeding"),
-                ("feature", "characteristic"), ("value", "magnitude"),
+                ("excellent", "exceptional"),
+                ("important", "consequential"),
+                ("solution", "resolution"),
+                ("method", "methodology"),
+                ("result", "outcome"),
+                ("analysis", "examination"),
+                ("system", "framework"),
+                ("process", "proceeding"),
+                ("feature", "characteristic"),
+                ("value", "magnitude"),
             ],
             "weight": 0.3,
         },
         "structural": {
             "markers": [
-                " Notably,", " In practice,", " As observed,",
-                " Generally speaking,", " Interestingly,",
-                " From a technical standpoint,", " In the context of,",
+                " Notably,",
+                " In practice,",
+                " As observed,",
+                " Generally speaking,",
+                " Interestingly,",
+                " From a technical standpoint,",
+                " In the context of,",
             ],
             "weight": 0.3,
         },
         "statistical": {
             # Add statistical watermark: subtle word frequency shifts
-            "rare_words": ["consequently", "furthermore", "nevertheless",
-                          "accordingly", "subsequently", "predominantly"],
+            "rare_words": [
+                "consequently",
+                "furthermore",
+                "nevertheless",
+                "accordingly",
+                "subsequently",
+                "predominantly",
+            ],
             "weight": 0.4,
         },
     }
@@ -125,7 +141,9 @@ class AdvancedDefenses:
 
     # ---- 1. Multi-Modal Injection Detection ----
 
-    def analyze_multi_modal(self, text_prompt: str, image_description: Optional[str] = None) -> MultiModalAnalysisResult:
+    def analyze_multi_modal(
+        self, text_prompt: str, image_description: str | None = None
+    ) -> MultiModalAnalysisResult:
         """
         Detect multi-modal injection attempts.
         Checks text for injection patterns and optionally cross-references with image content.
@@ -137,14 +155,20 @@ class AdvancedDefenses:
         # Check text patterns
         for pattern in self.MULTI_MODAL_INJECTION_PATTERNS:
             if re.search(pattern, text_lower, re.IGNORECASE):
-                details.append(f"Multi-modal injection pattern detected: {pattern[:60]}...")
+                details.append(
+                    f"Multi-modal injection pattern detected: {pattern[:60]}..."
+                )
                 threat_score += 0.15
 
         # Check for image-text inconsistency (if image description is provided)
         if image_description and text_lower:
             # Check if the text asks to ignore the image
-            if re.search(r"(ignore|forget|disregard)\s+.*(image|visual|picture)", text_lower):
-                details.append("Prompt asks to ignore visual content - possible modality manipulation")
+            if re.search(
+                r"(ignore|forget|disregard)\s+.*(image|visual|picture)", text_lower
+            ):
+                details.append(
+                    "Prompt asks to ignore visual content - possible modality manipulation"
+                )
                 threat_score += 0.25
 
             # Check if the text contradicts the image description
@@ -156,7 +180,14 @@ class AdvancedDefenses:
                 threat_score += 0.2
 
         # Check for adversarial perturbation indicators
-        entropy_indicators = ["base64", "encoded", "encrypted", "obfuscated", "noise", "pixel"]
+        entropy_indicators = [
+            "base64",
+            "encoded",
+            "encrypted",
+            "obfuscated",
+            "noise",
+            "pixel",
+        ]
         if any(ind in text_lower for ind in entropy_indicators):
             details.append("Adversarial perturbation indicators detected in text")
             threat_score += 0.2
@@ -201,7 +232,7 @@ class AdvancedDefenses:
         lexical_count = 0
         for old_word, new_word in self.WATERMARK_LAYERS["lexical"]["substitutions"]:
             if random.random() < self.WATERMARK_LAYERS["lexical"]["weight"]:
-                pattern = re.compile(rf'\b{re.escape(old_word)}\b', re.IGNORECASE)
+                pattern = re.compile(rf"\b{re.escape(old_word)}\b", re.IGNORECASE)
                 if pattern.search(watermarked):
                     watermarked = pattern.sub(new_word, watermarked, count=1)
                     lexical_count += 1
@@ -221,7 +252,9 @@ class AdvancedDefenses:
 
         # Layer 3: Statistical watermark (rare word insertion)
         if len(words) > 30:
-            rare_word = random.choice(self.WATERMARK_LAYERS["statistical"]["rare_words"])
+            rare_word = random.choice(
+                self.WATERMARK_LAYERS["statistical"]["rare_words"]
+            )
             # Insert at a position that doesn't break grammar
             insert_pos = random.randint(1, len(words) - 1)
             if random.random() < 0.5:
@@ -266,7 +299,9 @@ class AdvancedDefenses:
         }
         return pin
 
-    def verify_vector_pin(self, vector_id: str, vector: list[float], claimed_source: str, pin: str) -> VectorPinResult:
+    def verify_vector_pin(
+        self, vector_id: str, vector: list[float], claimed_source: str, pin: str
+    ) -> VectorPinResult:
         """
         Verify a vector's origin using its cryptographic pin.
         Detects injected/tampered vectors.
@@ -281,7 +316,9 @@ class AdvancedDefenses:
 
         record = self._vector_pins[vector_id]
         vector_bytes = json.dumps(vector, sort_keys=True).encode()
-        expected_pin = hashlib.sha256(vector_bytes + claimed_source.encode() + vector_id.encode()).hexdigest()
+        expected_pin = hashlib.sha256(
+            vector_bytes + claimed_source.encode() + vector_id.encode()
+        ).hexdigest()
 
         if record["pin"] == pin and pin == expected_pin:
             return VectorPinResult(
@@ -315,7 +352,9 @@ class AdvancedDefenses:
 
     # ---- 4. Milvus Auth Verification ----
 
-    def check_milvus_vulnerability(self, version: str, connection_string: str = "") -> MilvusAuthResult:
+    def check_milvus_vulnerability(
+        self, version: str, connection_string: str = ""
+    ) -> MilvusAuthResult:
         """
         Check if a Milvus deployment is vulnerable to CVE-2025-64513.
         The bypass uses the hardcoded @@milvus-member@@ constant.
@@ -334,7 +373,9 @@ class AdvancedDefenses:
 
         # Check for the bypass constant in connection strings
         if self.MILVUS_BYPASS_CONSTANT in connection_string:
-            findings.append(f"Connection string contains the hardcoded bypass constant: {self.MILVUS_BYPASS_CONSTANT}")
+            findings.append(
+                f"Connection string contains the hardcoded bypass constant: {self.MILVUS_BYPASS_CONSTANT}"
+            )
 
         vulnerable = len(findings) > 0
 
@@ -342,12 +383,18 @@ class AdvancedDefenses:
             vulnerable=vulnerable,
             cve="CVE-2025-64513",
             cvss=9.3,
-            detail="; ".join(findings) if findings else "Milvus deployment appears patched against CVE-2025-64513",
+            detail=(
+                "; ".join(findings)
+                if findings
+                else "Milvus deployment appears patched against CVE-2025-64513"
+            ),
         )
 
     # ---- 5. LangChain Version Audit ----
 
-    def audit_langchain(self, version: str, serialized_data: str = "") -> LangChainAuditResult:
+    def audit_langchain(
+        self, version: str, serialized_data: str = ""
+    ) -> LangChainAuditResult:
         """
         Audit LangChain for CVE-2025-68664/68665 lc-key serialization injection.
         """
@@ -361,33 +408,41 @@ class AdvancedDefenses:
                 if len(parts) >= 2:
                     major, minor = int(parts[0]), int(parts[1])
                     if major == 0 and minor < 3:
-                        findings.append({
-                            "severity": "critical",
-                            "type": "known_cve",
-                            "detail": f"LangChain {version} is vulnerable to CVE-2025-68664/68665 (CVSS 9.3)",
-                            "cve": "CVE-2025-68664",
-                            "cvss": 9.3,
-                        })
+                        findings.append(
+                            {
+                                "severity": "critical",
+                                "type": "known_cve",
+                                "detail": f"LangChain {version} is vulnerable to CVE-2025-68664/68665 (CVSS 9.3)",
+                                "cve": "CVE-2025-68664",
+                                "cvss": 9.3,
+                            }
+                        )
                         risk_score = 0.9
             except (ValueError, IndexError):
-                findings.append({
-                    "severity": "medium",
-                    "type": "version_parse_error",
-                    "detail": f"Could not parse LangChain version: {version}",
-                })
+                findings.append(
+                    {
+                        "severity": "medium",
+                        "type": "version_parse_error",
+                        "detail": f"Could not parse LangChain version: {version}",
+                    }
+                )
                 risk_score = 0.3
 
         # Check for lc-key injection in serialized data
         if serialized_data:
-            lc_key_matches = re.findall(self.LANGCHAIN_LC_KEY_PATTERN, serialized_data, re.IGNORECASE)
+            lc_key_matches = re.findall(
+                self.LANGCHAIN_LC_KEY_PATTERN, serialized_data, re.IGNORECASE
+            )
             if lc_key_matches:
-                findings.append({
-                    "severity": "critical",
-                    "type": "lc_key_injection",
-                    "detail": f"lc-key serialization patterns detected: {lc_key_matches[:5]}",
-                    "cve": "CVE-2025-68665",
-                    "cvss": 9.3,
-                })
+                findings.append(
+                    {
+                        "severity": "critical",
+                        "type": "lc_key_injection",
+                        "detail": f"lc-key serialization patterns detected: {lc_key_matches[:5]}",
+                        "cve": "CVE-2025-68665",
+                        "cvss": 9.3,
+                    }
+                )
                 risk_score = max(risk_score, 0.95)
 
         vulnerable = len([f for f in findings if f.get("severity") == "critical"]) > 0

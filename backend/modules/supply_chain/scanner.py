@@ -1,12 +1,10 @@
 # AEGIS Module 5: Supply Chain Scanner
 # Semantic taint analysis for AI/ML models and packages
 
-import re
 import json
-import hashlib
 import logging
-from dataclasses import dataclass, field
-from typing import Optional
+import re
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +17,8 @@ class ScanFinding:
     description: str
     location: str
     recommendation: str
-    cve_id: Optional[str] = None
-    cvss_score: Optional[float] = None
+    cve_id: str | None = None
+    cvss_score: float | None = None
 
 
 @dataclass
@@ -70,7 +68,10 @@ class SupplyChainScanner:
     # Known suspicious model weight patterns
     SUSPICIOUS_WEIGHT_PATTERNS = [
         (r"backdoor|trigger|poison|exploit|malware", "suspicious_layer_name"),
-        (r"(reverse_)?shell|exec\(|os\.system|subprocess|eval\(", "code_execution_layer"),
+        (
+            r"(reverse_)?shell|exec\(|os\.system|subprocess|eval\(",
+            "code_execution_layer",
+        ),
         (r"gradient_override|weight_bypass|skip_guard", "weight_manipulation"),
     ]
 
@@ -79,55 +80,170 @@ class SupplyChainScanner:
         "torch": [
             # FIND-2026-001: CVE-2026-24747 corrected to <2.10.0 (fix shipped 2.10.0, Jan 2026,
             # NVD + GHSA-63cw-57p8-fm3p). Prior data (<2.6.0) produced false negatives for 2.6.0-2.9.1.
-            {"cve": "CVE-2026-24747", "cvss": 9.8, "affected": "<2.10.0", "fixed": "2.10.0", "desc": "PyTorch weights_only unpickler RCE via heap corruption"},
+            {
+                "cve": "CVE-2026-24747",
+                "cvss": 9.8,
+                "affected": "<2.10.0",
+                "fixed": "2.10.0",
+                "desc": "PyTorch weights_only unpickler RCE via heap corruption",
+            },
             # CVE-2024-22476 (TorchServe): fix target to verify (see AEGIS-PyTorch-CVE-Audit) - TODO confirm latest patched TorchServe
-            {"cve": "CVE-2024-22476", "cvss": 7.8, "affected": "<2.2.0", "desc": "TorchServe RCE via malicious model"},
+            {
+                "cve": "CVE-2024-22476",
+                "cvss": 7.8,
+                "affected": "<2.2.0",
+                "desc": "TorchServe RCE via malicious model",
+            },
             # CVE-2025-32434 (GHSA-53q9-r3pm-6pq6, Apr 2025): torch.load weights_only RCE. Critical CVSS 9.8/9.3.
             # Verified NVD: affected <2.6.0, patched 2.6.0. (NOTE: this is the owner of the old "<2.6.0" range.)
-            {"cve": "CVE-2025-32434", "cvss": 9.8, "affected": "<2.6.0", "fixed": "2.6.0", "desc": "torch.load weights_only=True RCE"},
+            {
+                "cve": "CVE-2025-32434",
+                "cvss": 9.8,
+                "affected": "<2.6.0",
+                "fixed": "2.6.0",
+                "desc": "torch.load weights_only=True RCE",
+            },
             # GHSA-g6v3-crfc-cggj / AIKIDO-2026-220941 (Sep 2025, no assigned CVE): flatbuffer OOB read/write via
             # torch::load. Verified range 0.0.1-2.0.1, fixed 2.1.0.
-            {"cve": "GHSA-g6v3-crfc-cggj", "cvss": 6.5, "affected": "<2.1.0", "fixed": "2.1.0", "desc": "Out-of-bounds write parsing FlatBuffer via torch::load (arbitrary address access)"},
+            {
+                "cve": "GHSA-g6v3-crfc-cggj",
+                "cvss": 6.5,
+                "affected": "<2.1.0",
+                "fixed": "2.1.0",
+                "desc": "Out-of-bounds write parsing FlatBuffer via torch::load (arbitrary address access)",
+            },
             # GHSA-2rj9-7h5r-q4h8 / AIKIDO-2026-636203 (Sep 2025, no assigned CVE; related libuv CVE-2024-24806):
             # tensorpipe bundles libuv <1.48 -> SSRF via truncated hostnames. Verified range 0.0.1-2.8.0, fixed 2.9.0.
-            {"cve": "GHSA-2rj9-7h5r-q4h8", "cvss": 7.5, "affected": "<2.9.0", "fixed": "2.9.0", "desc": "SSRF via bundled tensorpipe/libuv truncated hostnames (CVE-2024-24806 related)"},
-            {"cve": "CVE-2023-48022", "cvss": 9.8, "affected": "<2.1.0", "desc": "Pickle deserialization RCE in torch.load"},
+            {
+                "cve": "GHSA-2rj9-7h5r-q4h8",
+                "cvss": 7.5,
+                "affected": "<2.9.0",
+                "fixed": "2.9.0",
+                "desc": "SSRF via bundled tensorpipe/libuv truncated hostnames (CVE-2024-24806 related)",
+            },
+            {
+                "cve": "CVE-2023-48022",
+                "cvss": 9.8,
+                "affected": "<2.1.0",
+                "desc": "Pickle deserialization RCE in torch.load",
+            },
         ],
         "tensorflow": [
-            {"cve": "CVE-2024-21734", "cvss": 7.5, "affected": "<2.15.0", "desc": "Out-of-bounds read in SparseCountSparseOutput"},
-            {"cve": "CVE-2023-25668", "cvss": 8.8, "affected": "<2.12.0", "desc": "Heap overflow in AvgPoolGrad"},
+            {
+                "cve": "CVE-2024-21734",
+                "cvss": 7.5,
+                "affected": "<2.15.0",
+                "desc": "Out-of-bounds read in SparseCountSparseOutput",
+            },
+            {
+                "cve": "CVE-2023-25668",
+                "cvss": 8.8,
+                "affected": "<2.12.0",
+                "desc": "Heap overflow in AvgPoolGrad",
+            },
         ],
         "transformers": [
-            {"cve": "CVE-2024-1234", "cvss": 7.5, "affected": "<4.36.0", "desc": "Remote code execution via crafted model config"},
+            {
+                "cve": "CVE-2024-1234",
+                "cvss": 7.5,
+                "affected": "<4.36.0",
+                "desc": "Remote code execution via crafted model config",
+            },
         ],
         "numpy": [
-            {"cve": "CVE-2021-34141", "cvss": 5.5, "affected": "<1.22.0", "desc": "Buffer overflow in ndarray"},
+            {
+                "cve": "CVE-2021-34141",
+                "cvss": 5.5,
+                "affected": "<1.22.0",
+                "desc": "Buffer overflow in ndarray",
+            },
         ],
         "pillow": [
-            {"cve": "CVE-2023-50447", "cvss": 7.5, "affected": "<10.2.0", "desc": "Heap buffer overflow in JPC decoding"},
+            {
+                "cve": "CVE-2023-50447",
+                "cvss": 7.5,
+                "affected": "<10.2.0",
+                "desc": "Heap buffer overflow in JPC decoding",
+            },
         ],
         "langchain": [
-            {"cve": "CVE-2025-68664", "cvss": 9.3, "affected": "<0.3.0", "desc": "LangChain lc-key serialization injection - secret extraction"},
-            {"cve": "CVE-2025-68665", "cvss": 9.3, "affected": "<0.3.0", "desc": "LangChain JS lc-key serialization injection - secret extraction"},
+            {
+                "cve": "CVE-2025-68664",
+                "cvss": 9.3,
+                "affected": "<0.3.0",
+                "desc": "LangChain lc-key serialization injection - secret extraction",
+            },
+            {
+                "cve": "CVE-2025-68665",
+                "cvss": 9.3,
+                "affected": "<0.3.0",
+                "desc": "LangChain JS lc-key serialization injection - secret extraction",
+            },
         ],
         "pymilvus": [
-            {"cve": "CVE-2025-64513", "cvss": 9.3, "affected": "<2.5.0", "desc": "Milvus auth bypass using hardcoded @@milvus-member@@ constant"},
+            {
+                "cve": "CVE-2025-64513",
+                "cvss": 9.3,
+                "affected": "<2.5.0",
+                "desc": "Milvus auth bypass using hardcoded @@milvus-member@@ constant",
+            },
         ],
         # ── npm/JS ecosystem (P0-1 audit fix: lodash passed=true was a coverage gap) ──
         "lodash": [
-            {"cve": "CVE-2020-8203", "cvss": 7.4, "affected": "<4.17.20", "fixed": "4.17.20", "desc": "Prototype pollution via defaultsDeep"},
-            {"cve": "CVE-2021-23337", "cvss": 7.2, "affected": "<4.17.21", "fixed": "4.17.21", "desc": "Command injection via template function"},
-            {"cve": "CVE-2023-26136", "cvss": 7.5, "affected": "<4.17.26", "fixed": "4.17.26", "desc": "ReDoS via zipObjectDeep"},
+            {
+                "cve": "CVE-2020-8203",
+                "cvss": 7.4,
+                "affected": "<4.17.20",
+                "fixed": "4.17.20",
+                "desc": "Prototype pollution via defaultsDeep",
+            },
+            {
+                "cve": "CVE-2021-23337",
+                "cvss": 7.2,
+                "affected": "<4.17.21",
+                "fixed": "4.17.21",
+                "desc": "Command injection via template function",
+            },
+            {
+                "cve": "CVE-2023-26136",
+                "cvss": 7.5,
+                "affected": "<4.17.26",
+                "fixed": "4.17.26",
+                "desc": "ReDoS via zipObjectDeep",
+            },
         ],
         "express": [
-            {"cve": "CVE-2024-29041", "cvss": 6.1, "affected": "<4.19.0", "fixed": "4.19.0", "desc": "Open redirect via res.redirect"},
-            {"cve": "CVE-2025-46565", "cvss": 7.5, "affected": "<4.21.2", "fixed": "4.21.2", "desc": "ReDoS in path-to-regexp (0.1.x)"},
+            {
+                "cve": "CVE-2024-29041",
+                "cvss": 6.1,
+                "affected": "<4.19.0",
+                "fixed": "4.19.0",
+                "desc": "Open redirect via res.redirect",
+            },
+            {
+                "cve": "CVE-2025-46565",
+                "cvss": 7.5,
+                "affected": "<4.21.2",
+                "fixed": "4.21.2",
+                "desc": "ReDoS in path-to-regexp (0.1.x)",
+            },
         ],
         "axios": [
-            {"cve": "CVE-2023-45857", "cvss": 7.5, "affected": "<1.6.0", "fixed": "1.6.0", "desc": "SSRF via absolute URL in proxy"},
+            {
+                "cve": "CVE-2023-45857",
+                "cvss": 7.5,
+                "affected": "<1.6.0",
+                "fixed": "1.6.0",
+                "desc": "SSRF via absolute URL in proxy",
+            },
         ],
         "copilot": [
-            {"cve": "CVE-2025-53773", "cvss": 9.6, "affected": "<1.0.0", "desc": "GitHub Copilot RCE via crafted code completion payload"},
+            {
+                "cve": "CVE-2025-53773",
+                "cvss": 9.6,
+                "affected": "<1.0.0",
+                "desc": "GitHub Copilot RCE via crafted code completion payload",
+            },
         ],
     }
 
@@ -145,19 +261,21 @@ class SupplyChainScanner:
         for fmt_name, fmt_info in self.UNSAFE_SERIALIZATION_FORMATS.items():
             for ext in fmt_info["extensions"]:
                 if file_lower.endswith(ext):
-                    findings.append(ScanFinding(
-                        severity=fmt_info["risk"],
-                        category="unsafe_serialization",
-                        title=f"Unsafe serialization format: {fmt_name}",
-                        description=fmt_info["description"],
-                        location=file_path,
-                        recommendation=(
-                            f"Avoid {fmt_name} format for model serialization. "
-                            f"Use SafeTensors or ONNX with validation instead. "
-                            f"If {fmt_name} is required, validate the model source and "
-                            f"checksum before loading."
-                        ),
-                    ))
+                    findings.append(
+                        ScanFinding(
+                            severity=fmt_info["risk"],
+                            category="unsafe_serialization",
+                            title=f"Unsafe serialization format: {fmt_name}",
+                            description=fmt_info["description"],
+                            location=file_path,
+                            recommendation=(
+                                f"Avoid {fmt_name} format for model serialization. "
+                                f"Use SafeTensors or ONNX with validation instead. "
+                                f"If {fmt_name} is required, validate the model source and "
+                                f"checksum before loading."
+                            ),
+                        )
+                    )
         return findings
 
     def _check_metadata(self, metadata: dict) -> list[ScanFinding]:
@@ -167,7 +285,10 @@ class SupplyChainScanner:
 
         suspicious_metadata = [
             ("author", ["unknown", "anonymous", "null", "deleted", "temp_"]),
-            ("source", ["unknown", "unverified", "suspicious", "huggingface.co/unverified"]),
+            (
+                "source",
+                ["unknown", "unverified", "suspicious", "huggingface.co/unverified"],
+            ),
             ("license", ["unknown", "custom", "all_rights_reserved"]),
             ("description", ["backdoor", "trigger", "poison", "eval(", "exec("]),
         ]
@@ -176,27 +297,31 @@ class SupplyChainScanner:
             value = str(metadata.get(field, "")).lower()
             for sv in suspicious_values:
                 if sv in value:
-                    findings.append(ScanFinding(
-                        severity="medium" if field != "description" else "high",
-                        category="suspicious_metadata",
-                        title=f"Suspicious {field} in model metadata",
-                        description=f"Model {field} contains '{sv}' which may indicate a malicious model",
-                        location=f"metadata.{field}",
-                        recommendation=f"Verify the model's {field} through an independent channel. "
-                                       f"Download only from trusted sources.",
-                    ))
+                    findings.append(
+                        ScanFinding(
+                            severity="medium" if field != "description" else "high",
+                            category="suspicious_metadata",
+                            title=f"Suspicious {field} in model metadata",
+                            description=f"Model {field} contains '{sv}' which may indicate a malicious model",
+                            location=f"metadata.{field}",
+                            recommendation=f"Verify the model's {field} through an independent channel. "
+                            f"Download only from trusted sources.",
+                        )
+                    )
 
         # Check for picklescan results (simulated - in production, run picklescan)
         if "pickle" in metadata_str or "pkl" in metadata_str:
             if "unsafe" in metadata_str or "dangerous" in metadata_str:
-                findings.append(ScanFinding(
-                    severity="critical",
-                    category="unsafe_serialization",
-                    title="Pickle scan detected unsafe globals",
-                    description="Model metadata indicates unsafe pickle globals (e.g., os.system, subprocess)",
-                    location="metadata.picklescan",
-                    recommendation="Rebuild the model using SafeTensors format. Never load untrusted pickle files.",
-                ))
+                findings.append(
+                    ScanFinding(
+                        severity="critical",
+                        category="unsafe_serialization",
+                        title="Pickle scan detected unsafe globals",
+                        description="Model metadata indicates unsafe pickle globals (e.g., os.system, subprocess)",
+                        location="metadata.picklescan",
+                        recommendation="Rebuild the model using SafeTensors format. Never load untrusted pickle files.",
+                    )
+                )
 
         return findings
 
@@ -206,20 +331,29 @@ class SupplyChainScanner:
         for weight_name in weight_names:
             for pattern, category in self.SUSPICIOUS_WEIGHT_PATTERNS:
                 if re.search(pattern, weight_name, re.IGNORECASE):
-                    findings.append(ScanFinding(
-                        severity="critical" if "code_execution" in category else "high",
-                        category=category,
-                        title=f"Suspicious weight name: {weight_name}",
-                        description=f"Layer name '{weight_name}' matches known backdoor/exploit pattern",
-                        location=f"weights.{weight_name}",
-                        recommendation="This weight name is highly suspicious. Remove the layer and retrain the model.",
-                    ))
+                    findings.append(
+                        ScanFinding(
+                            severity=(
+                                "critical" if "code_execution" in category else "high"
+                            ),
+                            category=category,
+                            title=f"Suspicious weight name: {weight_name}",
+                            description=f"Layer name '{weight_name}' matches known backdoor/exploit pattern",
+                            location=f"weights.{weight_name}",
+                            recommendation="This weight name is highly suspicious. Remove the layer and retrain the model.",
+                        )
+                    )
         return findings
 
-    def scan_model(self, file_path: str, metadata: Optional[dict] = None,
-                   weight_names: Optional[list[str]] = None) -> ScanResult:
+    def scan_model(
+        self,
+        file_path: str,
+        metadata: dict | None = None,
+        weight_names: list[str] | None = None,
+    ) -> ScanResult:
         """Scan a model file for supply chain risks."""
         import time
+
         start = time.time()
 
         findings = []
@@ -236,12 +370,22 @@ class SupplyChainScanner:
             findings.extend(self._check_weight_anomalies(weight_names))
 
         # Compute risk score
-        severity_weights = {"critical": 1.0, "high": 0.7, "medium": 0.4, "low": 0.2, "info": 0.0}
+        severity_weights = {
+            "critical": 1.0,
+            "high": 0.7,
+            "medium": 0.4,
+            "low": 0.2,
+            "info": 0.0,
+        }
         risk_score = 0.0
         for f in findings:
             risk_score = max(risk_score, severity_weights.get(f.severity, 0.0))
         # Multiple findings increase risk
-        risk_score = min(1.0, risk_score + (len([f for f in findings if f.severity in ("critical", "high")]) * 0.15))
+        risk_score = min(
+            1.0,
+            risk_score
+            + (len([f for f in findings if f.severity in ("critical", "high")]) * 0.15),
+        )
 
         # P0-1 gate fix (hacker audit): ANY CVE finding means FAILED - a medium-only
         # finding (e.g. numpy CVE-2021-34141 cvss 5.5) must not pass as "safe".
@@ -250,10 +394,12 @@ class SupplyChainScanner:
         for f in findings:
             severity_count[f.severity] = severity_count.get(f.severity, 0) + 1
 
-        summary = (f"Found {len(findings)} issues: "
-                   f"{severity_count['critical']} critical, {severity_count['high']} high, "
-                   f"{severity_count['medium']} medium, {severity_count['low']} low. "
-                   f"{'PASSED' if passed else 'FAILED'} (risk score: {risk_score:.2f})")
+        summary = (
+            f"Found {len(findings)} issues: "
+            f"{severity_count['critical']} critical, {severity_count['high']} high, "
+            f"{severity_count['medium']} medium, {severity_count['low']} low. "
+            f"{'PASSED' if passed else 'FAILED'} (risk score: {risk_score:.2f})"
+        )
 
         latency = (time.time() - start) * 1000
 
@@ -281,20 +427,22 @@ class SupplyChainScanner:
                 affected = cve["affected"]
                 # Simple version comparison (MVP)
                 if version and self._version_affected(version, affected):
-                    findings.append(ScanFinding(
-                        severity="high" if cve["cvss"] >= 7.0 else "medium",
-                        category="known_cve",
-                        title=f"{cve['cve']}: {cve['desc']}",
-                        description=f"Package {package_name} {version} is affected by {cve['cve']} (CVSS: {cve['cvss']}). "
-                                    f"Affected versions: {affected}",
-                        location=f"package:{package_name}@{version}",
-                        recommendation=(
-                            f"Upgrade {package_name} to version {cve.get('fixed', '>'+affected.replace('<', ''))}"
-                            + (" or later" if cve.get("fixed") else "")
-                        ),
-                        cve_id=cve["cve"],
-                        cvss_score=cve["cvss"],
-                    ))
+                    findings.append(
+                        ScanFinding(
+                            severity="high" if cve["cvss"] >= 7.0 else "medium",
+                            category="known_cve",
+                            title=f"{cve['cve']}: {cve['desc']}",
+                            description=f"Package {package_name} {version} is affected by {cve['cve']} (CVSS: {cve['cvss']}). "
+                            f"Affected versions: {affected}",
+                            location=f"package:{package_name}@{version}",
+                            recommendation=(
+                                f"Upgrade {package_name} to version {cve.get('fixed', '>'+affected.replace('<', ''))}"
+                                + (" or later" if cve.get("fixed") else "")
+                            ),
+                            cve_id=cve["cve"],
+                            cvss_score=cve["cvss"],
+                        )
+                    )
         return findings
 
     def _version_affected(self, version: str, affected_range: str) -> bool:
@@ -317,11 +465,13 @@ class SupplyChainScanner:
         lines = requirements.strip().split("\n")
         for line in lines:
             line = line.strip()
-            if not line or line.startswith("#") or line.startswith("--"):
+            if not line or line.startswith(("#", "--")):
                 continue
 
             # Parse package name and version
-            match = re.match(r"([a-zA-Z0-9_.-]+)\s*(>=|==|~=|<=|!=|>|<)\s*([\d.]+)", line)
+            match = re.match(
+                r"([a-zA-Z0-9_.-]+)\s*(>=|==|~=|<=|!=|>|<)\s*([\d.]+)", line
+            )
             if match:
                 pkg_name = match.group(1)
                 pkg_version = match.group(3)
@@ -329,43 +479,75 @@ class SupplyChainScanner:
 
             # Check for unpinned versions
             if ">=" in line or "~=" in line:
-                pkg_name = line.split(">=")[0].strip() if ">=" in line else line.split("~=")[0].strip()
-                findings.append(ScanFinding(
-                    severity="low",
-                    category="dependency_risk",
-                    title=f"Unpinned dependency: {pkg_name}",
-                    description=f"Package {pkg_name} uses a minimum version constraint (>=) which may "
-                                f"silently upgrade to a malicious version",
-                    location=f"requirements:{pkg_name}",
-                    recommendation=f"Pin {pkg_name} to an exact version with == instead of >=",
-                ))
+                pkg_name = (
+                    line.split(">=")[0].strip()
+                    if ">=" in line
+                    else line.split("~=")[0].strip()
+                )
+                findings.append(
+                    ScanFinding(
+                        severity="low",
+                        category="dependency_risk",
+                        title=f"Unpinned dependency: {pkg_name}",
+                        description=f"Package {pkg_name} uses a minimum version constraint (>=) which may "
+                        f"silently upgrade to a malicious version",
+                        location=f"requirements:{pkg_name}",
+                        recommendation=f"Pin {pkg_name} to an exact version with == instead of >=",
+                    )
+                )
 
             # Check for typosquatting
-            pkg_name_lower = line.split("=")[0].split(">")[0].split("<")[0].split("~")[0].strip().lower()
+            pkg_name_lower = (
+                line.split("=")[0]
+                .split(">")[0]
+                .split("<")[0]
+                .split("~")[0]
+                .strip()
+                .lower()
+            )
             if pkg_name_lower:
-                typosquatting = ["requirments", "requirment", "pytorch", "tensorflo",
-                                 "transfomers", "numppy", "pickle5", "joblibb",
-                                 "langchian", "langchaing", "lantchain",
-                                 "pymilvuss", "pymilvrus", "pymilvrus",
-                                 "huggingfce", "huggingfacce", "transformerss",
-                                 "transfomerss"]
+                typosquatting = [
+                    "requirments",
+                    "requirment",
+                    "pytorch",
+                    "tensorflo",
+                    "transfomers",
+                    "numppy",
+                    "pickle5",
+                    "joblibb",
+                    "langchian",
+                    "langchaing",
+                    "lantchain",
+                    "pymilvuss",
+                    "pymilvrus",
+                    "pymilvrus",
+                    "huggingfce",
+                    "huggingfacce",
+                    "transformerss",
+                    "transfomerss",
+                ]
                 for typo in typosquatting:
                     if typo == pkg_name_lower:
-                        findings.append(ScanFinding(
-                            severity="critical",
-                            category="dependency_risk",
-                            title=f"Typosquatting package detected: {pkg_name_lower}",
-                            description=f"Package '{pkg_name_lower}' matches known typosquatting pattern. "
-                                        f"This may be a malicious package designed to steal credentials.",
-                            location=f"requirements:{pkg_name_lower}",
-                            recommendation=f"Remove '{pkg_name_lower}' and install the correct package name.",
-                        ))
+                        findings.append(
+                            ScanFinding(
+                                severity="critical",
+                                category="dependency_risk",
+                                title=f"Typosquatting package detected: {pkg_name_lower}",
+                                description=f"Package '{pkg_name_lower}' matches known typosquatting pattern. "
+                                f"This may be a malicious package designed to steal credentials.",
+                                location=f"requirements:{pkg_name_lower}",
+                                recommendation=f"Remove '{pkg_name_lower}' and install the correct package name.",
+                            )
+                        )
 
         return findings
 
-    def scan_package(self, name: str, version: str, requirements_file: Optional[str] = None) -> ScanResult:
+    def scan_package(
+        self, name: str, version: str, requirements_file: str | None = None
+    ) -> ScanResult:
         """Scan a package for supply chain risks."""
         import time
+
         start = time.time()
 
         findings = []
@@ -378,11 +560,21 @@ class SupplyChainScanner:
             findings.extend(self._check_dependency_risks(requirements_file))
 
         # Compute risk score
-        severity_weights = {"critical": 1.0, "high": 0.7, "medium": 0.4, "low": 0.2, "info": 0.0}
+        severity_weights = {
+            "critical": 1.0,
+            "high": 0.7,
+            "medium": 0.4,
+            "low": 0.2,
+            "info": 0.0,
+        }
         risk_score = 0.0
         for f in findings:
             risk_score = max(risk_score, severity_weights.get(f.severity, 0.0))
-        risk_score = min(1.0, risk_score + (len([f for f in findings if f.severity in ("critical", "high")]) * 0.1))
+        risk_score = min(
+            1.0,
+            risk_score
+            + (len([f for f in findings if f.severity in ("critical", "high")]) * 0.1),
+        )
 
         # P0-1 gate fix (hacker audit): ANY CVE finding means FAILED - a medium-only
         # finding (e.g. numpy CVE-2021-34141 cvss 5.5) must not pass as "safe".
@@ -391,9 +583,11 @@ class SupplyChainScanner:
         for f in findings:
             severity_count[f.severity] = severity_count.get(f.severity, 0) + 1
 
-        summary = (f"Package {name}@{version}: {len(findings)} issues. "
-                   f"{severity_count['critical']} critical, {severity_count['high']} high. "
-                   f"{'PASSED' if passed else 'FAILED'} (risk score: {risk_score:.2f})")
+        summary = (
+            f"Package {name}@{version}: {len(findings)} issues. "
+            f"{severity_count['critical']} critical, {severity_count['high']} high. "
+            f"{'PASSED' if passed else 'FAILED'} (risk score: {risk_score:.2f})"
+        )
 
         latency = (time.time() - start) * 1000
 
@@ -410,12 +604,19 @@ class SupplyChainScanner:
     def scan_requirements(self, requirements_text: str) -> ScanResult:
         """Scan an entire requirements.txt file."""
         import time
+
         start = time.time()
 
         findings = self._check_dependency_risks(requirements_text)
 
         risk_score = 0.0
-        severity_weights = {"critical": 1.0, "high": 0.7, "medium": 0.4, "low": 0.2, "info": 0.0}
+        severity_weights = {
+            "critical": 1.0,
+            "high": 0.7,
+            "medium": 0.4,
+            "low": 0.2,
+            "info": 0.0,
+        }
         for f in findings:
             risk_score = max(risk_score, severity_weights.get(f.severity, 0.0))
         risk_score = min(1.0, risk_score)

@@ -1,12 +1,9 @@
 # AEGIS Module 2: Agent Authorization Engine
 # Deterministic IAM-style policy enforcement for AI agents
 
-import re
-import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Optional
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +11,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AuthorizationResult:
     authorized: bool
-    policy_id: Optional[str] = None
-    policy_name: Optional[str] = None
+    policy_id: str | None = None
+    policy_name: str | None = None
     conditions_met: bool = True
-    matched_action: Optional[str] = None
-    denied_reason: Optional[str] = None
-    audit_id: Optional[str] = None
+    matched_action: str | None = None
+    denied_reason: str | None = None
+    audit_id: str | None = None
     latency_ms: float = 0.0
 
 
@@ -36,6 +33,7 @@ class PolicyEngine:
 
     def _resolve_variable(self, value: str, context: dict) -> str:
         """Resolve {variable} interpolations in policy values."""
+
         def replace_var(match):
             var_name = match.group(1)
             # Walk dotted path in context
@@ -144,6 +142,7 @@ class PolicyEngine:
             AuthorizationResult with decision and metadata
         """
         import time
+
         start = time.time()
 
         # Construct the resource identifier from the tool call

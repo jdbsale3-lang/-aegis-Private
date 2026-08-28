@@ -1,10 +1,9 @@
 # AEGIS Module 5: Supply Chain Scanner - API Router
 
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from modules.supply_chain.scanner import SupplyChainScanner
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/supply-chain", tags=["supply-chain"])
 
-_scanner: Optional[SupplyChainScanner] = None
+_scanner: SupplyChainScanner | None = None
 
 
 def get_scanner() -> SupplyChainScanner:
@@ -24,14 +23,14 @@ def get_scanner() -> SupplyChainScanner:
 
 class ScanModelRequest(BaseModel):
     file_path: str
-    metadata: Optional[dict] = None
-    weight_names: Optional[list[str]] = None
+    metadata: dict | None = None
+    weight_names: list[str] | None = None
 
 
 class ScanPackageRequest(BaseModel):
     name: str
     version: str
-    requirements_file: Optional[str] = None
+    requirements_file: str | None = None
 
 
 class ScanRequirementsRequest(BaseModel):
@@ -44,7 +43,9 @@ async def scan_model(
     scanner: SupplyChainScanner = Depends(get_scanner),
 ):
     """Scan a model file for supply chain risks (serialization, backdoors, metadata)."""
-    result = scanner.scan_model(request.file_path, request.metadata, request.weight_names)
+    result = scanner.scan_model(
+        request.file_path, request.metadata, request.weight_names
+    )
     return {
         "target": result.target,
         "target_type": result.target_type,
@@ -62,7 +63,9 @@ async def scan_package(
     scanner: SupplyChainScanner = Depends(get_scanner),
 ):
     """Scan a package for known CVEs and supply chain risks."""
-    result = scanner.scan_package(request.name, request.version, request.requirements_file)
+    result = scanner.scan_package(
+        request.name, request.version, request.requirements_file
+    )
     return {
         "target": result.target,
         "target_type": result.target_type,

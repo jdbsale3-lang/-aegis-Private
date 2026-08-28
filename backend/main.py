@@ -9,17 +9,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core.config import settings
-from core.database import init_db, close_db
+from core.database import close_db, init_db
 from core.security import SecurityMiddleware
-from modules.prompt_defense.router import router as prompt_defense_router
-from modules.agent_auth.router import router as agent_auth_router
-from modules.rag_security.router import router as rag_security_router
-from modules.supply_chain.router import router as supply_chain_router
-from modules.model_extraction.router import router as extraction_router
-from modules.vector_security.router import router as vector_security_router
-from modules.self_protection.router import router as self_protection_router
 from modules.advanced_defenses.router import router as advanced_defenses_router
+from modules.agent_auth.router import router as agent_auth_router
 from modules.key_management.router import router as key_management_router
+from modules.model_extraction.router import router as extraction_router
+from modules.prompt_defense.router import router as prompt_defense_router
+from modules.rag_security.router import router as rag_security_router
+from modules.self_protection.router import router as self_protection_router
+from modules.supply_chain.router import router as supply_chain_router
+from modules.vector_security.router import router as vector_security_router
 
 # Configure logging
 logging.basicConfig(
@@ -73,7 +73,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception on {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "error": str(exc) if settings.DEBUG else "An unexpected error occurred"},
+        content={
+            "detail": "Internal server error",
+            "error": str(exc) if settings.DEBUG else "An unexpected error occurred",
+        },
     )
 
 
@@ -120,6 +123,7 @@ async def metrics():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "main:app",
         host=settings.API_HOST,

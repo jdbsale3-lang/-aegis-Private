@@ -1,7 +1,8 @@
 # Tests for AEGIS Advanced Defenses Module
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from modules.advanced_defenses.engine import AdvancedDefenses
@@ -34,7 +35,9 @@ class TestMultiModal:
 
     def test_adversarial_indicators(self):
         engine = AdvancedDefenses()
-        result = engine.analyze_multi_modal("What hidden pixel noise is in this encoded image?")
+        result = engine.analyze_multi_modal(
+            "What hidden pixel noise is in this encoded image?"
+        )
         assert result.threat_score >= 0.15
 
     def test_safe_with_image(self):
@@ -49,14 +52,19 @@ class TestMultiModal:
 class TestLordWatermark:
     def test_watermark_applied(self):
         engine = AdvancedDefenses()
-        text = "This is an excellent analysis of the system and its important features. " * 10
+        text = (
+            "This is an excellent analysis of the system and its important features. "
+            * 10
+        )
         watermarked, wm_id, details = engine.apply_lord_resistant_watermark(text)
         assert len(wm_id) > 0
         assert details["lord_resistant"] is True
 
     def test_watermark_multi_layer(self):
         engine = AdvancedDefenses()
-        long_text = " ".join(["word"] * 100) + " This is an excellent and important result."
+        long_text = (
+            " ".join(["word"] * 100) + " This is an excellent and important result."
+        )
         watermarked, wm_id, details = engine.apply_lord_resistant_watermark(long_text)
         assert details["layer_count"] >= 1
         assert watermarked != long_text
@@ -101,7 +109,12 @@ class TestVectorPin:
         engine = AdvancedDefenses()
         engine.pin_vector("real1", [0.1], "trusted")
         vectors = [
-            {"id": "real1", "vector": [0.1], "source": "trusted", "pin": engine._vector_pins["real1"]["pin"]},
+            {
+                "id": "real1",
+                "vector": [0.1],
+                "source": "trusted",
+                "pin": engine._vector_pins["real1"]["pin"],
+            },
             {"id": "fake1", "vector": [0.9], "source": "unknown", "pin": "fake_pin"},
         ]
         injected = engine.detect_injected_vectors(vectors)
@@ -124,7 +137,9 @@ class TestMilvusAuth:
 
     def test_bypass_constant_detected(self):
         engine = AdvancedDefenses()
-        result = engine.check_milvus_vulnerability("2.5.0", "user=admin;password=@@milvus-member@@")
+        result = engine.check_milvus_vulnerability(
+            "2.5.0", "user=admin;password=@@milvus-member@@"
+        )
         assert result.vulnerable is True
 
 
@@ -142,6 +157,8 @@ class TestLangChainAudit:
 
     def test_lc_key_injection(self):
         engine = AdvancedDefenses()
-        result = engine.audit_langchain("0.3.0", serialized_data='{"lc_key_id": "malicious_payload"}')
+        result = engine.audit_langchain(
+            "0.3.0", serialized_data='{"lc_key_id": "malicious_payload"}'
+        )
         assert result.vulnerable is True
         assert result.risk_score >= 0.9

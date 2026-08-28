@@ -12,16 +12,16 @@ Revoked/expired keys are rejected by validate_api_key (see auth note below).
 
 All IP belongs to JDB Sales.
 """
+
 from __future__ import annotations
 
 import hmac
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,14 +37,22 @@ class KeyRecord(Base):
     __tablename__ = "aegis_api_keys"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    key_hash: Mapped[str] = mapped_column(String(96), unique=True, index=True)  # sha256(key)
+    key_hash: Mapped[str] = mapped_column(
+        String(96), unique=True, index=True
+    )  # sha256(key)
     prefix: Mapped[str] = mapped_column(String(12))
-    scopes: Mapped[str] = mapped_column(Text, default="prompt.analyze,supply-chain.package")  # csv
-    status: Mapped[str] = mapped_column(String(12), default="active")  # active|revoked|expired
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    scopes: Mapped[str] = mapped_column(
+        Text, default="prompt.analyze,supply-chain.package"
+    )  # csv
+    status: Mapped[str] = mapped_column(
+        String(12), default="active"
+    )  # active|revoked|expired
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(datetime.UTC)
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class KeyCreate(BaseModel):
@@ -58,19 +66,27 @@ class KeyOut(BaseModel):
     scopes: str
     status: str
     created_at: datetime
-    expires_at: Optional[datetime] = None
-    revoked_at: Optional[datetime] = None
+    expires_at: datetime | None = None
+    revoked_at: datetime | None = None
 
 
 def hash_key(k: str) -> str:
-    return hmac.new(settings.AEGIS_ADMIN_TOKEN.encode(), k.encode(), "sha256").hexdigest()
+    return hmac.new(
+        settings.AEGIS_ADMIN_TOKEN.encode(), k.encode(), "sha256"
+    ).hexdigest()
 
 
-async def require_admin(x_admin_token: Optional[str] = Header(default=None, alias="x-admin-token")):
-    if not settings.AEGIS_ADMIN_TOKEN or not x_admin_token or not hmac.compare_digest(
-        x_admin_token, settings.AEGIS_ADMIN_TOKEN
+async def require_admin(
+    x_admin_token: str | None = Header(default=None, alias="x-admin-token")
+):
+    if (
+        not settings.AEGIS_ADMIN_TOKEN
+        or not x_admin_token
+        or not hmac.compare_digest(x_admin_token, settings.AEGIS_ADMIN_TOKEN)
     ):
-        raise HTTPException(status_code=401, detail="Admin token required (x-admin-token).")
+        raise HTTPException(
+            status_code=401, detail="Admin token required (x-admin-token)."
+        )
     return True
 
 
@@ -79,59 +95,92 @@ async def list_keys(_=Depends(require_admin), db: AsyncSession = Depends(get_db)
     rows = (await db.execute(KeyRecord.__table__.select())).scalars().all()
     return [
         KeyOut(
-            id=r.id, prefix=r.prefix, scopes=r.scopes, status=r.status,
-            created_at=r.created_at, expires_at=r.expires_at, revoked_at=r.revoked_at,
+            id=r.id,
+            prefix=r.prefix,
+            scopes=r.scopes,
+            status=r.status,
+            created_at=r.created_at,
+            expires_at=r.expires_at,
+            revoked_at=r.revoked_at,
         )
         for r in rows
     ]
 
 
 @router.post("", response_model=KeyOut, status_code=201)
-async def create_key(body: KeyCreate, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
+async def create_key(
+    body: KeyCreate, _=Depends(require_admin), db: AsyncSession = Depends(get_db)
+):
     raw = secrets.token_urlsafe(32)
     rec = KeyRecord(
         key_hash=hash_key(raw),
         prefix="aegis_" + raw[:8],
         scopes=body.scopes,
         status="active",
-        expires_at=datetime.utcnow() + timedelta(days=body.ttl_days),
+        expires_at=datetime.now(datetime.UTC) + timedelta(days=body.ttl_days),
     )
     db.add(rec)
     await db.commit()
     await db.refresh(rec)
     # One-time display of the full key; record it in the audit log by the admin.
     return {
-        "id": rec.id, "prefix": rec.prefix, "scopes": rec.scopes, "status": rec.status,
-        "created_at": rec.created_at, "expires_at": rec.expires_at, "revoked_at": rec.revoked_at,
+        "id": rec.id,
+        "prefix": rec.prefix,
+        "scopes": rec.scopes,
+        "status": rec.status,
+        "created_at": rec.created_at,
+        "expires_at": rec.expires_at,
+        "revoked_at": rec.revoked_at,
         "_one_time_key": raw,  # pragma: no cover - shown once
     }
 
 
 @router.post("/rotate", response_model=KeyOut)
-async def rotate_key(key_id: int, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
+async def rotate_key(
+    key_id: int, _=Depends(require_admin), db: AsyncSession = Depends(get_db)
+):
     row = (
-        await db.execute(KeyRecord.__table__.select().where(KeyRecord.__table__.c.id == key_id))
-    ).scalars().first()
+        (
+            await db.execute(
+                KeyRecord.__table__.select().where(KeyRecord.__table__.c.id == key_id)
+            )
+        )
+        .scalars()
+        .first()
+    )
     if not row:
         raise HTTPException(status_code=404, detail="Key not found")
     row.status = "revoked"
-    row.revoked_at = datetime.utcnow()
+    row.revoked_at = datetime.now(datetime.UTC)
     await db.commit()
     return KeyOut(
-        id=row.id, prefix=row.prefix, scopes=row.scopes, status=row.status,
-        created_at=row.created_at, expires_at=row.expires_at, revoked_at=row.revoked_at,
+        id=row.id,
+        prefix=row.prefix,
+        scopes=row.scopes,
+        status=row.status,
+        created_at=row.created_at,
+        expires_at=row.expires_at,
+        revoked_at=row.revoked_at,
     )
 
 
 @router.delete("/{key_id}", status_code=204)
-async def revoke_key(key_id: int, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
+async def revoke_key(
+    key_id: int, _=Depends(require_admin), db: AsyncSession = Depends(get_db)
+):
     row = (
-        await db.execute(KeyRecord.__table__.select().where(KeyRecord.__table__.c.id == key_id))
-    ).scalars().first()
+        (
+            await db.execute(
+                KeyRecord.__table__.select().where(KeyRecord.__table__.c.id == key_id)
+            )
+        )
+        .scalars()
+        .first()
+    )
     if not row:
         raise HTTPException(status_code=404, detail="Key not found")
     row.status = "revoked"
-    row.revoked_at = datetime.utcnow()
+    row.revoked_at = datetime.now(datetime.UTC)
     await db.commit()
 
 

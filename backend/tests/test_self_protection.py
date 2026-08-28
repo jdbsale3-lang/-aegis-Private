@@ -1,8 +1,8 @@
 # Tests for AEGIS-on-itself Self-Protection Layer
 
-import sys
 import os
-import tempfile
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from modules.self_protection.watcher import AEGISSelfProtection
@@ -48,7 +48,9 @@ def test_runtime_state_update():
     watcher = AEGISSelfProtection()
     watcher.update_runtime_state("rate_limit_functional", False)
     result = watcher._check_runtime_state()
-    has_finding = any(f.get("check") == "rate_limit_functional" for f in result.findings)
+    has_finding = any(
+        f.get("check") == "rate_limit_functional" for f in result.findings
+    )
     if not result.findings:
         pass  # Runtime state may not be tracked in test env
     else:

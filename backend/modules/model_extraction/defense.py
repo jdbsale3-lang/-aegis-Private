@@ -1,16 +1,13 @@
 # AEGIS Module 6: Model Extraction Defense
 # Prevents IP theft through query-based model extraction attacks
 
-import re
-import json
 import hashlib
-import random
-import math
-import time
 import logging
-from dataclasses import dataclass, field
+import random
+import re
+import time
 from collections import defaultdict
-from typing import Optional
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -96,22 +93,25 @@ class ModelExtractionDefense:
         self.watermark_rate = watermark_rate
         self.perturbation_scale = perturbation_scale
         # Session tracking
-        self._sessions: dict[str, dict] = defaultdict(lambda: {
-            "queries": [],
-            "query_hashes": set(),
-            "unique_tokens": set(),
-            "coverage_estimate": 0.0,
-            "start_time": time.time(),
-            "last_alert_time": 0,
-        })
+        self._sessions: dict[str, dict] = defaultdict(
+            lambda: {
+                "queries": [],
+                "query_hashes": set(),
+                "unique_tokens": set(),
+                "coverage_estimate": 0.0,
+                "start_time": time.time(),
+                "last_alert_time": 0,
+            }
+        )
 
     # ---- Layer 1: Prompt Watermarking ----
 
     def _select_watermark(self, text: str) -> tuple[str, str, str]:
         """Select and apply a watermark based on content analysis."""
-        text_lower = text.lower()
         watermark_type = "lexical"
-        watermark_id = hashlib.sha256(f"{text}{time.time()}{random.random()}".encode()).hexdigest()[:12]
+        watermark_id = hashlib.sha256(
+            f"{text}{time.time()}{random.random()}".encode()
+        ).hexdigest()[:12]
 
         # Choose watermark type based on text length
         if len(text.split()) > 100:
@@ -129,7 +129,7 @@ class ModelExtractionDefense:
         watermarked = text
         substitutions = 0
         for old_word, new_word in self.LEXICAL_WATERMARKS:
-            pattern = re.compile(rf'\b{re.escape(old_word)}\b', re.IGNORECASE)
+            pattern = re.compile(rf"\b{re.escape(old_word)}\b", re.IGNORECASE)
             if pattern.search(watermarked) and random.random() < self.watermark_rate:
                 watermarked = pattern.sub(new_word, watermarked, count=1)
                 substitutions += 1
@@ -141,8 +141,11 @@ class ModelExtractionDefense:
 
         # Fallback: syntactic watermark (add a subtle phrase)
         syntactic_markers = [
-            " Notably,", " Interestingly,", " In practice,",
-            " Generally speaking,", " As observed,",
+            " Notably,",
+            " Interestingly,",
+            " In practice,",
+            " Generally speaking,",
+            " As observed,",
         ]
         sentences = text.rstrip().split(". ")
         if len(sentences) > 1:
@@ -172,7 +175,9 @@ class ModelExtractionDefense:
 
     # ---- Layer 2: Query Monitoring ----
 
-    def _detect_high_volume(self, session: dict, threshold: int = 50, window: int = 60) -> bool:
+    def _detect_high_volume(
+        self, session: dict, threshold: int = 50, window: int = 60
+    ) -> bool:
         """Detect abnormally high query volume."""
         now = time.time()
         recent = [q for q in session["queries"] if now - q < window]
@@ -206,8 +211,19 @@ class ModelExtractionDefense:
             return False
 
         # Check if this is exploring edge cases
-        edge_case_markers = ["edge", "corner", "boundary", "limit", "extreme", "rare",
-                             "unusual", "atypical", "anomalous", "outlier", "peculiar"]
+        edge_case_markers = [
+            "edge",
+            "corner",
+            "boundary",
+            "limit",
+            "extreme",
+            "rare",
+            "unusual",
+            "atypical",
+            "anomalous",
+            "outlier",
+            "peculiar",
+        ]
         edge_score = sum(1 for t in tokens if t in edge_case_markers)
 
         if edge_score >= 2:
@@ -228,8 +244,9 @@ class ModelExtractionDefense:
                 return True
         return False
 
-    def monitor_query(self, session_id: str, query: str, source_ip: str,
-                      user_id: str) -> QueryMonitoringResult:
+    def monitor_query(
+        self, session_id: str, query: str, source_ip: str, user_id: str
+    ) -> QueryMonitoringResult:
         """Monitor a query for extraction patterns."""
         start = time.time()
         session = self._sessions[session_id]
@@ -242,7 +259,9 @@ class ModelExtractionDefense:
         session["unique_tokens"].update(query.lower().split())
 
         # Update coverage estimate (simplified)
-        unique_ratio = len(session["query_hashes"]) / max(now - session["start_time"], 1)
+        unique_ratio = len(session["query_hashes"]) / max(
+            now - session["start_time"], 1
+        )
         session["coverage_estimate"] = min(1.0, unique_ratio * 0.01)
 
         # Run detection checks
@@ -253,64 +272,80 @@ class ModelExtractionDefense:
         if self._detect_high_volume(session):
             query_count = len([q for q in session["queries"] if now - q < 60])
             if now - session.get("last_alert_time", 0) > 30:
-                alerts.append(ExtractionAlert(
-                    alert_id=hashlib.md5(f"hv-{session_id}-{now}".encode()).hexdigest()[:12],
-                    severity="high",
-                    alert_type="high_volume",
-                    description=f"High query volume detected: {query_count} queries in last 60 seconds",
-                    source_ip=source_ip,
-                    user_id=user_id,
-                    query_count=query_count,
-                    time_window=60,
-                    recommendation="Temporarily reduce rate limit or require additional authentication",
-                ))
+                alerts.append(
+                    ExtractionAlert(
+                        alert_id=hashlib.md5(
+                            f"hv-{session_id}-{now}".encode()
+                        ).hexdigest()[:12],
+                        severity="high",
+                        alert_type="high_volume",
+                        description=f"High query volume detected: {query_count} queries in last 60 seconds",
+                        source_ip=source_ip,
+                        user_id=user_id,
+                        query_count=query_count,
+                        time_window=60,
+                        recommendation="Temporarily reduce rate limit or require additional authentication",
+                    )
+                )
                 session["last_alert_time"] = now
                 risk_score = max(risk_score, 0.7)
 
         # 2. Systematic probing
         if self._detect_systematic_probing(session):
-            alerts.append(ExtractionAlert(
-                alert_id=hashlib.md5(f"sp-{session_id}-{now}".encode()).hexdigest()[:12],
-                severity="critical",
-                alert_type="systematic_probing",
-                description=f"Systematic probing pattern detected: {len(session['query_hashes'])} unique queries in "
-                            f"{int((now - session['start_time']))} seconds",
-                source_ip=source_ip,
-                user_id=user_id,
-                query_count=len(session["query_hashes"]),
-                time_window=int(now - session["start_time"]),
-                recommendation="Block the session and investigate. This pattern matches automated extraction tools.",
-            ))
+            alerts.append(
+                ExtractionAlert(
+                    alert_id=hashlib.md5(f"sp-{session_id}-{now}".encode()).hexdigest()[
+                        :12
+                    ],
+                    severity="critical",
+                    alert_type="systematic_probing",
+                    description=f"Systematic probing pattern detected: {len(session['query_hashes'])} unique queries in "
+                    f"{int(now - session['start_time'])} seconds",
+                    source_ip=source_ip,
+                    user_id=user_id,
+                    query_count=len(session["query_hashes"]),
+                    time_window=int(now - session["start_time"]),
+                    recommendation="Block the session and investigate. This pattern matches automated extraction tools.",
+                )
+            )
             risk_score = max(risk_score, 0.9)
 
         # 3. Distribution shift
         if self._detect_distribution_shift(session, query):
-            alerts.append(ExtractionAlert(
-                alert_id=hashlib.md5(f"ds-{session_id}-{now}".encode()).hexdigest()[:12],
-                severity="medium",
-                alert_type="distribution_shift",
-                description=f"Distribution shift detected: query explores edge cases or novel inputs",
-                source_ip=source_ip,
-                user_id=user_id,
-                query_count=len(session["query_hashes"]),
-                time_window=60,
-                recommendation="Monitor for continued exploration. Consider using output perturbation.",
-            ))
+            alerts.append(
+                ExtractionAlert(
+                    alert_id=hashlib.md5(f"ds-{session_id}-{now}".encode()).hexdigest()[
+                        :12
+                    ],
+                    severity="medium",
+                    alert_type="distribution_shift",
+                    description="Distribution shift detected: query explores edge cases or novel inputs",
+                    source_ip=source_ip,
+                    user_id=user_id,
+                    query_count=len(session["query_hashes"]),
+                    time_window=60,
+                    recommendation="Monitor for continued exploration. Consider using output perturbation.",
+                )
+            )
             risk_score = max(risk_score, 0.5)
 
         # 4. Known tool signature
         if self._detect_tool_signature(query):
-            alerts.append(ExtractionAlert(
-                alert_id=hashlib.md5(f"ts-{session_id}-{now}".encode()).hexdigest()[:12],
-                severity="critical",
-                alert_type="known_tool_signature",
-                description=f"Known extraction tool signature detected in query",
-                source_ip=source_ip,
-                user_id=user_id,
-                query_count=1,
-                time_window=0,
-                recommendation="Block immediately. This is a confirmed extraction attempt.",
-            ))
+            alerts.append(
+                ExtractionAlert(
+                    alert_id=hashlib.md5(f"ts-{session_id}-{now}".encode()).hexdigest()[
+                        :12
+                    ],
+                    severity="critical",
+                    alert_type="known_tool_signature",
+                    description="Known extraction tool signature detected in query",
+                    source_ip=source_ip,
+                    user_id=user_id,
+                    query_count=1,
+                    time_window=0,
+                    recommendation="Block immediately. This is a confirmed extraction attempt.",
+                )
+            )
             risk_score = max(risk_score, 1.0)
 
         # Decisions
@@ -332,6 +367,7 @@ class ModelExtractionDefense:
 
     def _perturb_numerical_values(self, text: str) -> str:
         """Add calibrated noise to numerical values to prevent reconstruction."""
+
         def perturb_number(match):
             num_str = match.group(0)
             try:
@@ -341,10 +377,13 @@ class ModelExtractionDefense:
                 # Add Gaussian noise proportional to value
                 noise = random.gauss(0, self.perturbation_scale * abs(num))
                 # Round to reasonable precision
-                perturbed = round(num + noise, max(2, len(num_str.split('.')[-1]) if '.' in num_str else 0))
+                perturbed = round(
+                    num + noise,
+                    max(2, len(num_str.split(".")[-1]) if "." in num_str else 0),
+                )
                 # Format back
-                if '.' in num_str:
-                    parts = num_str.split('.')
+                if "." in num_str:
+                    parts = num_str.split(".")
                     decimal_places = len(parts[1])
                     return f"{perturbed:.{decimal_places}f}"
                 return str(int(perturbed))
@@ -352,7 +391,7 @@ class ModelExtractionDefense:
                 return num_str
 
         # Perturb standalone numbers (not in code blocks or URLs)
-        return re.sub(r'\b\d+\.?\d*\b', perturb_number, text)
+        return re.sub(r"\b\d+\.?\d*\b", perturb_number, text)
 
     def _perturb_synonyms(self, text: str) -> str:
         """Subtly perturb word choices to prevent exact reconstruction."""
@@ -369,7 +408,7 @@ class ModelExtractionDefense:
         for old_word, new_word in self.LEXICAL_WATERMARKS:
             if substitutions >= max_subs:
                 break
-            pattern = re.compile(rf'\b{re.escape(old_word)}\b', re.IGNORECASE)
+            pattern = re.compile(rf"\b{re.escape(old_word)}\b", re.IGNORECASE)
             if pattern.search(perturbed):
                 perturbed = pattern.sub(new_word, perturbed, count=1)
                 substitutions += 1
@@ -407,8 +446,9 @@ class ModelExtractionDefense:
 
         return perturbed
 
-    def full_defense(self, session_id: str, query: str, output: str,
-                     source_ip: str, user_id: str) -> tuple[str, QueryMonitoringResult]:
+    def full_defense(
+        self, session_id: str, query: str, output: str, source_ip: str, user_id: str
+    ) -> tuple[str, QueryMonitoringResult]:
         """
         Run the full defense pipeline: monitor + watermark + perturb.
         Returns (protected_output, monitoring_result).

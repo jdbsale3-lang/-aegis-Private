@@ -1,10 +1,9 @@
 # AEGIS Advanced Defenses - API Router
 
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from modules.advanced_defenses.engine import AdvancedDefenses
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/advanced", tags=["advanced-defenses"])
 
-_engine: Optional[AdvancedDefenses] = None
+_engine: AdvancedDefenses | None = None
 
 
 def get_engine() -> AdvancedDefenses:
@@ -24,7 +23,7 @@ def get_engine() -> AdvancedDefenses:
 
 class MultiModalRequest(BaseModel):
     text_prompt: str
-    image_description: Optional[str] = None
+    image_description: str | None = None
 
 
 class MultiModalResponse(BaseModel):
@@ -155,7 +154,9 @@ async def check_milvus(
     engine: AdvancedDefenses = Depends(get_engine),
 ):
     """Check if a Milvus deployment is vulnerable to CVE-2025-64513."""
-    result = engine.check_milvus_vulnerability(request.version, request.connection_string)
+    result = engine.check_milvus_vulnerability(
+        request.version, request.connection_string
+    )
     return MilvusCheckResponse(
         vulnerable=result.vulnerable,
         cve=result.cve,

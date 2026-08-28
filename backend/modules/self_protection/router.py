@@ -1,10 +1,9 @@
 # AEGIS-on-itself: Self-Protection - API Router
 
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from modules.self_protection.watcher import AEGISSelfProtection
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/self-protection", tags=["self-protection"])
 
-_watcher: Optional[AEGISSelfProtection] = None
+_watcher: AEGISSelfProtection | None = None
 
 
 def get_watcher() -> AEGISSelfProtection:
@@ -59,7 +58,11 @@ async def update_runtime_state(
 ):
     """Update the runtime state of a security check."""
     watcher.update_runtime_state(request.check_name, request.is_active)
-    return {"status": "updated", "check_name": request.check_name, "is_active": request.is_active}
+    return {
+        "status": "updated",
+        "check_name": request.check_name,
+        "is_active": request.is_active,
+    }
 
 
 @router.post("/reset-baseline")

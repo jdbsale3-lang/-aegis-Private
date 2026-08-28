@@ -1,9 +1,8 @@
 # AEGIS Module 6: Model Extraction Defense - API Router
 
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from modules.model_extraction.defense import ModelExtractionDefense
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/extraction-defense", tags=["extraction-defense"])
 
-_defense: Optional[ModelExtractionDefense] = None
+_defense: ModelExtractionDefense | None = None
 
 
 def get_defense() -> ModelExtractionDefense:
@@ -106,8 +105,11 @@ async def full_defense(
 ):
     """Run the full defense pipeline: monitor + watermark + perturb."""
     protected_output, monitor = defense.full_defense(
-        request.session_id, request.query, request.output,
-        request.source_ip, request.user_id,
+        request.session_id,
+        request.query,
+        request.output,
+        request.source_ip,
+        request.user_id,
     )
     return FullDefenseResponse(
         protected_output=protected_output,
@@ -120,4 +122,8 @@ async def full_defense(
 
 @router.get("/health")
 async def health_check():
-    return {"module": "model_extraction_defense", "status": "healthy", "version": "1.0.0"}
+    return {
+        "module": "model_extraction_defense",
+        "status": "healthy",
+        "version": "1.0.0",
+    }

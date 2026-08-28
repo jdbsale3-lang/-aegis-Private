@@ -1,13 +1,13 @@
 # AEGIS - Security Middleware
 # API key validation, rate limiting, security headers
 
-import time
 import hmac
 import logging
-from typing import Callable
+import time
 from collections import defaultdict
+from collections.abc import Callable
 
-from fastapi import Request, HTTPException, status
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -95,7 +95,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                     "Retry-After": str(_general_limiter.reset_in(client_ip)),
                     "X-RateLimit-Limit": str(_general_limiter.max_requests),
                     "X-RateLimit-Remaining": "0",
-                    "X-RateLimit-Reset": str(int(time.time()) + _general_limiter.reset_in(client_ip)),
+                    "X-RateLimit-Reset": str(
+                        int(time.time()) + _general_limiter.reset_in(client_ip)
+                    ),
                     "X-RateLimit-Window": str(_general_limiter.window_seconds),
                 },
             )
@@ -105,15 +107,21 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         # Quota headers on every response (P0-4 audit fix - clients can self-throttle)
         response.headers["X-RateLimit-Limit"] = str(_general_limiter.max_requests)
-        response.headers["X-RateLimit-Remaining"] = str(_general_limiter.remaining(client_ip))
-        response.headers["X-RateLimit-Reset"] = str(int(time.time()) + _general_limiter.reset_in(client_ip))
+        response.headers["X-RateLimit-Remaining"] = str(
+            _general_limiter.remaining(client_ip)
+        )
+        response.headers["X-RateLimit-Reset"] = str(
+            int(time.time()) + _general_limiter.reset_in(client_ip)
+        )
         response.headers["X-RateLimit-Window"] = str(_general_limiter.window_seconds)
 
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
         response.headers["X-AEGIS-Protected"] = "true"
 
         # Remove server header that leaks version info

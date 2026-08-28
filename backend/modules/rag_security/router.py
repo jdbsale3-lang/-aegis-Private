@@ -1,10 +1,8 @@
 # AEGIS Module 4: RAG Security - API Router
 
-import hashlib
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from modules.rag_security.engine import RAGSecurityEngine
@@ -13,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/rag", tags=["rag-security"])
 
-_engine: Optional[RAGSecurityEngine] = None
+_engine: RAGSecurityEngine | None = None
 
 
 def get_engine() -> RAGSecurityEngine:
@@ -75,7 +73,9 @@ async def trace_query(
     engine: RAGSecurityEngine = Depends(get_engine),
 ):
     """Layer 2: Trace which documents influenced a response and flag anomalies."""
-    result = engine.trace_query(request.query_id, request.query, request.retrieved_chunks)
+    result = engine.trace_query(
+        request.query_id, request.query, request.retrieved_chunks
+    )
     return TraceQueryResponse(
         query_id=result.query_id,
         query_hash=result.query_hash,

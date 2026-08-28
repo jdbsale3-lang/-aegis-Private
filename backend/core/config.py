@@ -1,8 +1,8 @@
 # AEGIS Backend - Core Configuration
 # Environment-based settings with secure defaults
 
+
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     CORS_ORIGINS: list[str] = ["*"]
-    API_KEY: Optional[str] = None  # Set in production
+    API_KEY: str | None = None  # Set in production
 
     AEGIS_ADMIN_TOKEN: str = ""  # P0-3 admin token for key management
 
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # Module 3: MCP Gateway
     MCP_GATEWAY_HOST: str = "0.0.0.0"
     MCP_GATEWAY_PORT: int = 8443
-    MCP_GATEWAY_UPSTREAM: Optional[str] = None
+    MCP_GATEWAY_UPSTREAM: str | None = None
     MCP_SANDBOX_ENABLED: bool = True
     MCP_MAX_TOOLS_PER_SERVER: int = 50
 
@@ -58,9 +58,9 @@ class Settings(BaseSettings):
     JWT_EXPIRATION: int = 3600  # 1 hour
 
     # Alerting
-    ALERT_WEBHOOK_URL: Optional[str] = None
-    ALERT_SLACK_CHANNEL: Optional[str] = None
-    ALERT_EMAIL_SENDER: Optional[str] = None
+    ALERT_WEBHOOK_URL: str | None = None
+    ALERT_SLACK_CHANNEL: str | None = None
+    ALERT_EMAIL_SENDER: str | None = None
 
     class Config:
         env_file = ".env"
