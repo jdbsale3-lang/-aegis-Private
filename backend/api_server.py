@@ -78,7 +78,7 @@ ADMIN_ONLY_PATHS = [
 # Per-key monthly quota (must match the registration message)
 MONTHLY_QUOTA = 1000
 
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_EMAIL_RE = re.compile(r"^[^@\s]{1,254}@[^@\s]{1,64}\.[^@\s]{1,63}$")
 
 
 class RegisterRequest(BaseModel):
