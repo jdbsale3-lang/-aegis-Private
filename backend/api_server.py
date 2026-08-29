@@ -20,8 +20,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from modules.advanced_defenses.router import router as advanced_defenses_router
-from modules.key_management.router import router as key_management_router
 from modules.agent_auth.router import router as agent_auth_router
+from modules.key_management.router import router as key_management_router
 from modules.model_extraction.router import router as extraction_router
 from modules.prompt_defense.router import router as prompt_defense_router
 from modules.rag_security.router import router as rag_security_router
