@@ -12,7 +12,7 @@ transformers==5.16.1
 scikit-learn==1.5.2
 numpy==1.26.4
 prometheus-client==0.21.0
-python-jose[cryptography]==3.4.0
+python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 alembic==1.14.0
 pytest==9.1.1
