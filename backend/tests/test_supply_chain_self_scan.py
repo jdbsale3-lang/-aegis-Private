@@ -36,11 +36,13 @@ def test_aegis_own_requirements_are_fully_pinned():
     unpinned = [
         f.description
         for f in result.findings
-        if f.category == "dependency_risk" and "minimum version" in f.description.lower()
+        if f.category == "dependency_risk"
+        and "minimum version" in f.description.lower()
     ]
-    assert unpinned == [], (
-        "AEGIS own requirements.txt contains unpinned dependencies: "
-        + "; ".join(unpinned)
+    assert (
+        unpinned == []
+    ), "AEGIS own requirements.txt contains unpinned dependencies: " + "; ".join(
+        unpinned
     )
 
 
@@ -53,4 +55,6 @@ def test_aegis_own_requirements_have_no_findings():
         f"AEGIS own requirements.txt FAILED supply-chain scan: "
         f"{result.summary} — {[f.title for f in result.findings]}"
     )
-    assert result.risk_score == 0.0, f"risk_score should be 0.0, got {result.risk_score}"
+    assert (
+        result.risk_score == 0.0
+    ), f"risk_score should be 0.0, got {result.risk_score}"
