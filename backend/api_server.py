@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from modules.advanced_defenses.router import router as advanced_defenses_router
+from modules.key_management.router import router as key_management_router
 from modules.agent_auth.router import router as agent_auth_router
 from modules.model_extraction.router import router as extraction_router
 from modules.prompt_defense.router import router as prompt_defense_router
@@ -61,6 +62,7 @@ app.include_router(extraction_router)
 app.include_router(vector_security_router)
 app.include_router(self_protection_router)
 app.include_router(advanced_defenses_router)
+app.include_router(key_management_router)
 
 # API Key storage
 API_KEYS_FILE = "/opt/aegis/data/api_keys.json"
