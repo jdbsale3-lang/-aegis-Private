@@ -38,4 +38,20 @@
 ## SIGNATURE BLOCK
 **ZEUSTRUSTAEGISSECURITY LTD** (№ 17391549) · 66 Paul Street, London EC2A 4NA — the contracting entity. All AEGIS/ZEUS IP is owned by JDB Sales and licensed to the holding company per the IP assignment. All IP belongs to JDB Sales.
 
-**END — All IP belongs to JDB Sales.**
+---
+
+## SOLICITOR REVIEW NOTES (for the lawyer — v1.0 draft)
+- [ ] **1 · Jurisdiction & governing law** — confirm English law + exclusive English courts clause is present and consistent with the rest of the contract.
+- [ ] **2 · Definitions completeness** — check "Background IP" covers: platform, source code, docs, know-how, marks, goodwill, tooling, models, training data methodologies, security libraries. Consider adding "and all iterations, versions, derivatives and related rights".
+- [ ] **3 · Foreground IP default** — 3.2(i) presumption that modifications of Background IP belong to Supplier is the *commercial* position; NHS T&Cs lean the other way. Flag that this clause must be negotiated explicitly in the SOW or commercial schedule — do NOT rely on general T&Cs.
+- [ ] **4 · Licence scope** — confirm NHS licence in 2.2 is limited, non-exclusive, non-transferable, "for contract purpose only" with no sub-licensing (or controlled sub-licensing) and time limited (termination of contract → licence ends, subject to data-protection retention).
+- [ ] **5 · Marks & no-challenge** — 5.1 no-challenge clause is good; add: "the Authority shall not register domain names or social handles containing the Marks"; consider a "brand usage guidelines" attachment.
+- [ ] **6 · Assignment background** — the underlying JDB Sales → holding-co IP assignment must be **executed BEFORE** this clause is signed, so the contracting entity (holding co) truly owns what it warrants in clause 7.
+- [ ] **7 · Escrow** — confirm escrow release triggers (insolvency, 30-day non-remedied breach), and that a third-party escrow agent is named or the mechanism described in the MSA.
+- [ ] **8 · Liability & indemnity** — clause 7 warranty needs a matching indemnity for third-party IP claims; ensure caps/limits of liability are defined elsewhere (NHS T&Cs may impose their own) — solicitor to reconcile.
+- [ ] **9 · IP assignment from employees/contractors** — verify the Employee/Contractor IP assignment + OSS register (contract pack DOC6) is in force before any NHS-funded development starts.
+- [ ] **10 · Competition/state-aid angle** — if NHS pays for any "Foreground" development, confirm the arrangement isn't caught by state-aid/procurement rules that would force IP handover. Specialist advice recommended pre-signature.
+- [ ] **11 · Renewal of marks** — solicitor to confirm the year-10 renewal process is captured in the compliance tracker (renewal due ~10 years from 2026 filings).
+- [ ] **12 · Counterparties** — check whether the NHS contracting entity is "NHS England" vs a Trust; clause language should be entity-agnostic or matched to the actual counterparty.
+
+**Solicitor checklist status:** DRAFT — pending review. Do not sign un-reviewed.
