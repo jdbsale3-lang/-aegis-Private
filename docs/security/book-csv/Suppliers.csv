@@ -1,0 +1,10 @@
+Supplier,Contact,What they supply,Invoice ref,Payment terms,Next order,Notes
+DigitalOcean,billing@digitalocean.com,AEGIS hosting,,monthly,,
+AWS,aws@amazon.com,S3 backups,,monthly,,
+Cloudflare,support@cloudflare.com,DNS/tunnel,,annual,,
+Registrar,,domains,,annual,,renew before expiry
+IASME,,Cyber Essentials cert,,annual,,book now
+Pension provider (future),NEST/The People's Pension,auto-enrolment,,monthly,,when staff hired
+Payroll provider (future),PayeZone/Xero,PAYE/RTI filing,,monthly,,when staff hired
+UKAS body (future),,ISO 27001,,annual,,post-contract
+Insurer (future),,Cyber/PI,,annual,,get quotes

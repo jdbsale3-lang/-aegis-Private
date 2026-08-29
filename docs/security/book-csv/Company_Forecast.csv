@@ -1,0 +1,13 @@
+Month,Money IN (est £),Money OUT (est £),Net £,Cumulative £,Notes
+Sep-26,0,10.5,-10.5,-10.5,setup phase
+Oct-26,0,10.5,-10.5,-21.0,setup phase
+Nov-26,0,10.56,-10.56,-31.56,setup phase
+Dec-26,5000,10.5,4989.5,4957.94,AEGIS contract ramp (scenario)
+Jan-27,6500,10.5,6489.5,11447.44,AEGIS contract ramp (scenario)
+Feb-27,8000,10.5,7989.5,19436.94,AEGIS contract ramp (scenario)
+Mar-27,9500,10.5,9489.5,28926.44,AEGIS contract ramp (scenario)
+Apr-27,11000,10.5,10989.5,39915.94,AEGIS contract ramp (scenario)
+May-27,12500,10.5,12489.5,52405.44,AEGIS contract ramp (scenario)
+Jun-27,14000,10.5,13989.5,66394.94,AEGIS contract ramp (scenario)
+Jul-27,15500,10.5,15489.5,81884.44,AEGIS contract ramp (scenario)
+Aug-27,17000,10.5,16989.5,98873.94,AEGIS contract ramp (scenario)
