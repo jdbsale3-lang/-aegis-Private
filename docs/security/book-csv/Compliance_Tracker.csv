@@ -1,0 +1,17 @@
+Priority,Item,Category,Status,One-off £,Recurring £/yr,Due date,Owner,Evidence / ref,Next action
+P0,ICO data protection fee paid,Data,IN PROGRESS,0,52,immediate,Darren,C2015509 ZA,Confirm fee PAID
+P0,UK trademark: ZEUS,IP,NOT STARTED,445,0,1 week,Darren,IPO TM№ pending,File e-TM3 (5 cls)
+P0,UK trademark: ZEUSTA,IP,NOT STARTED,445,0,1 week,Darren,IPO TM№ pending,File e-TM3 (5 cls)
+P0,UK trademark series ZEUS/ZEUS AI/ZEUSAI,IP,NOT STARTED,505,0,1 week,Darren,IPO TM№ pending,File series e-TM3
+P0,UK trademark: AEGIS,IP,NOT STARTED,445,0,1 week,Darren,IPO TM№ pending,File e-TM3 (5 cls)
+P0,DTAC submission (NHS England),NHS,NOT STARTED,0,0,pre-Monday,Darren,Answers drafted,Submit 2026 form
+P0,Cyber Essentials,Security,NOT STARTED,400,0,4 weeks,Darren,IASME,Book assessment
+P1,Confirmation statement,Company,ANNUAL,0,50,anniversary,Darren,Companies House,File online £50
+P1,Annual accounts,Company,ANNUAL,0,0,9m after YE,Accountant,Companies House,Digital filing
+P1,DSPT re-assessment,Data,ANNUAL,0,0,annual,Darren,DSPT toolkit,Maintain evidence
+P1,DPIA sign-off,Data,IN PROGRESS,0,0,pre-deploy,Darren,Compliance pack,Approve before deploy
+P1,Cyber / PI insurance,Insurance,NOT STARTED,0,0,pre-contract,Darren,Get quotes,NHS proof of cover
+P2,Cyber Essentials Plus,Security,NOT STARTED,3000,0,post CE,Darren,IASME,After CE
+P2,DIATF / OfDIA certification,Identity,NOT STARTED,0,0,quote,Darren,CAB quote,Request quotation
+P2,ISO 27001,Security,NOT STARTED,10000,5000,after contract,Darren,UKAS body,Fund from revenue
+P2,VAT registration,Tax,NOT YET,0,0,at £90k,Accountant,HMRC,Below threshold
