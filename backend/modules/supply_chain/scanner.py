@@ -149,6 +149,18 @@ class SupplyChainScanner:
                 "affected": "<4.36.0",
                 "desc": "Remote code execution via crafted model config",
             },
+            {
+                "cve": "GHSA-fgcw-684q-jj6r",
+                "cvss": 8.0,
+                "affected": "<5.5.0",
+                "desc": "Arbitrary code execution during model initialization (LightGlue) - fixed 5.5.0",
+            },
+            {
+                "cve": "GHSA-29pf-2h5f-8g72",
+                "cvss": 7.8,
+                "affected": "<5.3.0",
+                "desc": "Remote code execution in HuggingFace transformers - fixed 5.3.0",
+            },
         ],
         "numpy": [
             {
