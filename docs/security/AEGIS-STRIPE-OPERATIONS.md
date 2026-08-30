@@ -81,6 +81,38 @@ Earlier synthetic signed tests (evt_test_zeus_e2e_001/002) proved verification +
 - Unsigned POST → 400 ✅ · no-key `/status` → 401 ✅ · no-key `/health` → 200 ✅
 - **E2E verdict: real Stripe → AEGIS delivery confirmed with zero synthetic payloads.**
 
+## 5. WEBHOOK RETRY BEHAVIOR, FAILURE MODES & MANUAL REDELIVERY
+
+### 5.1 Retry behavior (Stripe-side, documented)
+- Stripe considers a delivery **successful** only when the endpoint responds **2xx**.
+- Any **non-2xx** (400/401/500/…), **timeout**, or **network/TLS error** → Stripe automatically retries with **exponential backoff over ~3 days** (early retries come within minutes, later ones spaced hours apart).
+- While retrying, the event row in the Stripe dashboard shows status **`scheduled`** with one delivery attempt per retry; each attempt is a fresh POST from Stripe's servers with a **newly generated `Stripe-Signature`** (new `t=` timestamp), so our 5-minute replay window applies per attempt and never rejects a legitimate retry.
+- After the ~3-day window without a 2xx, Stripe **stops retrying** and marks the event **`failed`**. It will **not** come back automatically — manual redelivery is required (5.3).
+
+### 5.2 Failure modes — this endpoint, mapped
+| Mode | Response we return | Stripe's reaction | How to detect / fix |
+|---|---|---|---|
+| Signature verification fails (bad secret, tampered, replay) | **400** `invalid signature` | retries (up to 3 days) | check `stripe-signature` header + `STRIPE_WEBHOOK_SECRET`; `/stripe/webhook/health` |
+| Webhook secret not set (systemd env missing) | **500** `webhook not configured` | retries | fix `/etc/aegis/stripe.env` → `systemctl restart aegis-api.service` |
+| Malformed JSON body | **400** `invalid JSON` | retries | see raw body in Stripe event deliveries panel |
+| Event log write failure | **200** (logging error swallowed — never blocks the response) | accepted, no retry | check `/opt/aegis/stripe-events.jsonl` perms (owned `aegis:aegis`) |
+| Unknown/unhandled event type | **200** `ok`, logged-only | accepted, no retry | expected — event types are additive |
+| Server down / nginx timeout / TLS issue | no response | retries | `/stripe/webhook/health` from a monitor; uptime check on `apiaegissecurity.tech` |
+| **Idempotency** | n/a | n/a | every delivered event (incl. retries + redeliveries) is appended once per delivery to the JSONL log — **the same `event.id` can appear multiple times**. Log-only actions are fine; any future side-effect automation (send receipt, update sheet) MUST dedupe by `event.id` before acting. |
+
+### 5.3 Manual redelivery (Stripe Dashboard)
+When an event shows **`failed`** (or you just want it re-sent):
+1. Open **Dashboard → Developers → Webhooks** → click our endpoint (`https://apiaegissecurity.tech/stripe/webhook`).
+2. Go to the **Events** tab (lists event deliveries, status `delivered` / `scheduled` / `failed`, with response code + body per attempt).
+3. Find the event and click its **⋮ (kebab) menu → Redeliver**. Stripe re-sends it to the endpoint with a fresh signature; it lands in `/opt/aegis/stripe-events.jsonl` as a new delivery of the same `event.id`.
+4. Confirm: `GET /stripe/webhook/events` (key-gated) or tail the JSONL on the droplet.
+- **API alternative:** `POST /v1/events/{event_id}/retry` with the secret key (same effect, scriptable — ZEUS can do this on request).
+
+### 5.4 Operational notes
+- **Gap detection:** compare invoices/subscriptions we know exist (e.g. via `GET /v1/invoices`) against `event.id`s in the JSONL log — anything missing after an outage gets redelivered via 5.3.
+- **Ordering is not guaranteed:** Stripe delivers events as they happen and retries can arrive out of order. Never assume chronological order — use the event/object `created` timestamps when sequencing matters (e.g. `invoice.paid` before `invoice.payment_succeeded` is possible).
+- **Health probe for monitors:** `GET /stripe/webhook/health` (public, PII-free) → `{"status":"ok","configured":true,"event_log_size":…}` — wire this into any uptime watcher to catch the "server down" failure mode early.
+
 ## 6. LIVE PRODUCTS / PRICES (existing)
 | Product | id |
 |---|---|
