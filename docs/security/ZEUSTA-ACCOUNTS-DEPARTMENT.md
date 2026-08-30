@@ -115,6 +115,13 @@ All IP belongs to JDB Sales; JDB Sales licenses IP to ZEUSTA (holding co).
 - Verify figures against HMRC thresholds for the tax year before use (rates change each April).
 - Never invent tax codes, NI numbers, or pay figures — ask Darren or check HMRC records.
 
+## 7b. SHOPIFY RECEIPT FLOW (live 30 Aug 2026)
+- **Receipt spreadsheet:** `ZEUSTA-Shopify-Receipts` — Google Sheets id `13LoRUtyeA7z5yhW3ReLTgpR00QRj1bQuKehSUve32U0`, worksheet `orders_paid` (sheetId 1290829230). Headers: webhook_id, ts, topic, order_id, order_number, total_price, currency, email, action, status.
+- **Source of truth:** `/opt/aegis/data/shopify-events.jsonl` on the droplet (every verified delivery logged once).
+- **Flow:** webhook lands (HMAC verified, idempotent) → Accounts Department reads the log on the weekly reconcile → appends `orders/paid` rows to the sheet with `action=PAYMENT RECEIVED` → dedupes on webhook_id (never double-post; the sheet is the receipt ledger).
+- **VERIFIED 30 Aug 2026:** all 10 registered topics accepted with real Shopify signatures (200 each); real order 1234 (£404.95) appended + read back from the sheet.
+- **Sheet URL:** https://docs.google.com/spreadsheets/d/13LoRUtyeA7z5yhW3ReLTgpR00QRj1bQuKehSUve32U0/edit
+
 ## 8. FIRST 7 DAYS (ramp checklist)
 1. ✅ Stripe live + verified (key in secrets, webhook receiving)
 2. ✅ Webhook auth + idempotency + test suite (113 tests green)
