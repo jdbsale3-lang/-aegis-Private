@@ -184,7 +184,7 @@ async def stripe_webhook(request: Request):
 | Log/DB unwritable | 200 (swallowed) | accepted | check `/opt/aegis/data` ownership (aegis:aegis) |
 
 ### 4.5 Registering storefront webhook subscriptions
-**STATUS (30 Aug 2026): ✔ REGISTERED — 10 store-level webhooks live, signing secret installed, real-signature verified.**
+**STATUS (30 Aug 2026): ✔ INTEGRATION COMPLETE — 10/10 store-level webhooks live, signing secret installed, real-signature verified, receipt flow to Google Sheets live. Remaining 3 app-level topics optional (see below).**
 - Store: `xegrdn-7v.myshopify.com` · app `zeus-ai-digital-app-1` · client ID `3e995f3109afedcee71f1802742e55f3`
 - **Registered via Shopify Admin → Settings → Notifications → Webhooks (all JSON → `https://apiaegissecurity.tech/shopify/webhook`):**
   `orders/create` · `orders/paid` · `orders/fulfilled` · `orders/cancelled` · `refunds/create` · `products/create` · `products/update` · `customers/create` · `customers/update` · `themes/publish`
