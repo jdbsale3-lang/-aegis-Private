@@ -5,7 +5,7 @@
 # All IP belongs to JDB Sales.
 set -euo pipefail
 
-STORE="${1:-zeusai2026.myshopify.com}"
+STORE="${1:-xegrdn-7v.myshopify.com}"
 ADDRESS="https://apiaegissecurity.tech/shopify/webhook"
 API="https://${STORE}/admin/api/2024-10/webhooks.json"
 

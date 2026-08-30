@@ -184,12 +184,11 @@ async def stripe_webhook(request: Request):
 | Log/DB unwritable | 200 (swallowed) | accepted | check `/opt/aegis/data` ownership (aegis:aegis) |
 
 ### 4.5 Registering storefront webhook subscriptions
-**STATUS (30 Aug 2026): ATTEMPTED via API → HTTP 401, registration BLOCKED on token type.**
-- Store domain supplied: `zeusai2026.myshopify.com` · app: `zeus-ai-digital-app-1`
-- `GET /admin/api/2024-10/shop.json` with the supplied token → **HTTP 401 "Invalid API key or access token"**
-- **Root cause:** the token sent (`shpss_…`) is the app **client secret** (used ONLY for webhook HMAC verification), not an Admin API bearer token. Shopify Admin API calls need the **Admin API access token** from the custom app — it starts with **`shpat_`** (found in Shopify Admin → Settings → Apps and sales channels → `zeus-ai-digital-app-1` → **Admin API access token**; the client secret `shpss_…` is on the same page, different field).
-- The `b22f9e4e…` value is the webhook HMAC key and is already correctly installed at `/etc/aegis/shopify.env` as `SHOPIFY_CLIENT_SECRET` — no change needed there.
-- **Fix:** obtain the `shpat_…` Admin API access token from the custom app page, provide it to ZEUS (replaces `SHOPIFY_ACCESS_TOKEN` in `/etc/aegis/shopify.env`), then registration runs for all 13 topics.
+**STATUS (30 Aug 2026): API registration still BLOCKED — no valid Admin API credential.**
+- **VERIFIED FACTS:** store domain = **`xegrdn-7v.myshopify.com`** (NOT zeusai2026) · app = `zeus-ai-digital-app-1` · API client ID = `3e995f3109afedcee71f1802742e55f3` (from app session `aud` claim)
+- Tested and rejected on the CORRECT store: `shpss_40bec…` (client secret — 401), `b22f9e4e…` (401), OAuth client-credentials with client_id + both secrets → `missing or invalid client secret`
+- The OAuth error page shown in admin ("Missing code or shop param") is the embedded-app redirect error, unrelated to API auth.
+- **Therefore: MANUAL registration in the admin is the PRIMARY path** (no token needed). API loop remains ready if a valid `shpat_…` Admin API access token is ever obtained.
 
 **Manual path (2 min/webhook, no token needed):**
 1. Shopify Admin → **Settings → Notifications** (bottom of left menu) → scroll to **Webhooks** → **Create webhook**.
