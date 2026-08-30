@@ -173,14 +173,24 @@ async def stripe_webhook(request: Request):
 | Server down | no response | retries | health probe `/shopify/webhook/health`, restart service |
 | Log/DB unwritable | 200 (swallowed) | accepted | check `/opt/aegis/data` ownership (aegis:aegis) |
 
-### 4.5 Registering storefront webhook subscriptions (NOT yet done)
-The receiver is live, but Shopify must be told to POST to it. Requires the **store domain** (e.g. `store.myshopify.com`) — provide it to ZEUS and it registers via Admin API:
+### 4.5 Registering storefront webhook subscriptions
+**DECISION (30 Aug 2026): Darren registers manually in the Shopify admin.** The receiver is live and verified; the Admin-API registration path remains available if ever preferred.
+
+**Manual path (2 min/webhook):**
+1. Shopify Admin → **Settings → Notifications** (bottom of left menu) → scroll to **Webhooks** → **Create webhook**.
+2. For each topic below: select topic, **Format: JSON**, **Endpoint: HTTPS**, Address: `https://apiaegissecurity.tech/shopify/webhook`, then **Save**.
+3. After saving, click the webhook's **⋮ → Send test notification** — the event lands in `/opt/aegis/data/shopify-events.jsonl` and the action fires once (verification recipe in §4.7).
+
+**The 13 topics to register:**
+`orders/create` · `orders/paid` · `orders/fulfilled` · `orders/cancelled` · `refunds/create` · `products/create` · `products/update` · `customers/create` · `customers/update` · `app/uninstalled` · `app/scopes_update` · `checkouts/paid` · `themes/publish`
+
+**API alternative (if preferred later):**
 ```
 POST /admin/api/2024-10/webhooks.json
 headers: X-Shopify-Access-Token: <SHOPIFY_ACCESS_TOKEN>
 {"webhook": {"topic": "orders/paid", "address": "https://apiaegissecurity.tech/shopify/webhook", "format": "json"}}
 ```
-(Or manually: Shopify Admin → Settings → Notifications → Webhooks → Add webhook.) Repeat per topic from 4.2. Access token is stored at `/etc/aegis/shopify.env` → `SHOPIFY_ACCESS_TOKEN`.
+Access token is stored at `/etc/aegis/shopify.env` → `SHOPIFY_ACCESS_TOKEN`. ZEUS can run this loop for all 13 topics the moment the store domain is provided.
 
 ### 4.6 Redelivery / testing
 - **Manual resend:** Shopify Admin → Settings → Notifications → Webhooks → the webhook → **Recent deliveries** → kebab menu → **Resend**.
