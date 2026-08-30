@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZEUSTA — Mobile Storefront Preview</title>
+<style>
+  :root{--obsidian:#10131B;--obsidian2:#1B2030;--cyan:#4FCEE4;--cyan-deep:#2FA8C3;--acid:#D9F24B;--white:#FFFFFF;--muted:#9AA0AC;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0B0E14;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;justify-content:center;padding:40px 16px;}
+  .stage{text-align:center;margin-bottom:30px;width:100%;}
+  .stage p{color:var(--muted);font-size:13px;letter-spacing:2px;margin-top:8px;}
+  .phone{width:390px;height:820px;background:var(--obsidian);border:3px solid #2A2F3D;border-radius:44px;overflow:hidden;position:relative;margin:0 auto;box-shadow:0 30px 80px rgba(0,0,0,.6);}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:26px;background:#0B0E14;border-radius:0 0 18px 18px;z-index:10;}
+  .screen{height:100%;overflow-y:auto;scrollbar-width:none;background:var(--obsidian);}
+  .announce{background:var(--obsidian2);color:var(--acid);text-align:center;padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+  .announce b{color:var(--cyan);}
+  .mhead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(79,206,228,.14);}
+  .burger{width:26px;height:18px;display:flex;flex-direction:column;gap:5px;}
+  .burger i{height:2.5px;background:var(--cyan);border-radius:2px;}
+  .mlogo{display:flex;align-items:center;gap:8px;}
+  .mlogo svg{width:30px;height:30px;}
+  .mlogo span{font-weight:800;font-size:15px;letter-spacing:2px;}
+  .mcart{background:var(--cyan);color:var(--obsidian);font-weight:800;font-size:11px;padding:7px 12px;border-radius:20px;}
+  .hero{padding:30px 20px 26px;background:radial-gradient(ellipse at 50% -10%, rgba(79,206,228,.2), transparent 60%);}
+  .hero h1{font-size:30px;font-weight:800;line-height:1.12;letter-spacing:-.5px;}
+  .hero h1 span{color:var(--cyan);}
+  .hero p{color:var(--muted);font-size:13.5px;margin:12px 0 20px;line-height:1.5;}
+  .cta{display:block;text-align:center;background:linear-gradient(90deg,var(--cyan),var(--cyan-deep));color:var(--obsidian);font-weight:800;padding:14px;border-radius:10px;font-size:15px;text-decoration:none;}
+  .cta.yellow{background:var(--acid);margin-top:10px;}
+  .trust{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 18px;}
+  .trust div{background:var(--obsidian2);border:1px solid rgba(79,206,228,.14);border-radius:10px;padding:10px;font-size:11px;color:var(--muted);font-weight:600;}
+  .trust b{color:var(--cyan);}
+  h2{font-size:20px;font-weight:800;padding:18px 18px 4px;}
+  h2 small{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-top:4px;}
+  .plist{display:flex;gap:12px;overflow-x:auto;padding:16px 18px 20px;scrollbar-width:none;}
+  .pcard{flex:0 0 240px;background:var(--obsidian2);border:1px solid rgba(79,206,228,.15);border-radius:14px;overflow:hidden;}
+  .pcard img{width:100%;display:block;}
+  .pbody{padding:12px;}
+  .pbadge{display:inline-block;background:var(--acid);color:var(--obsidian);font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:1px;margin-bottom:8px;}
+  .pbody h3{font-size:15px;margin-bottom:5px;}
+  .pbody p{color:var(--muted);font-size:11.5px;line-height:1.4;}
+  .price{display:flex;gap:8px;align-items:center;margin:10px 0;}
+  .price .now{color:var(--cyan);font-weight:800;font-size:17px;}
+  .price .was{color:var(--muted);text-decoration:line-through;font-size:12px;}
+  .add{display:block;text-align:center;background:var(--cyan);color:var(--obsidian);font-weight:800;font-size:12px;padding:9px;border-radius:8px;text-decoration:none;}
+  .how{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 18px 10px;}
+  .how div{background:var(--obsidian2);border:1px solid rgba(79,206,228,.1);border-radius:12px;text-align:center;padding:14px 8px;}
+  .how b{display:inline-block;background:var(--cyan);color:var(--obsidian);width:30px;height:30px;line-height:30px;border-radius:50%;font-size:13px;margin-bottom:8px;}
+  .how p{color:var(--muted);font-size:11px;margin-top:6px;}
+  .faq{padding:8px 18px 18px;}
+  .faq details{border-bottom:1px solid rgba(79,206,228,.12);padding:12px 0;}
+  .faq summary{font-weight:700;font-size:13px;}
+  .faq p{color:var(--muted);font-size:12px;padding-top:8px;line-height:1.5;}
+  footer{background:var(--obsidian2);padding:20px 18px 34px;text-align:center;border-radius:0 0 40px 40px;}
+  footer .logotext{font-weight:800;font-size:16px;letter-spacing:2px;margin-bottom:8px;}
+  footer p{color:var(--muted);font-size:10px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="stage">
+  <p>📱 ZEUSTA STOREFRONT — MOBILE PREVIEW · 390px</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+      <div class="announce">★ INSTANT DELIVERY · <b>AI-GUARDED BY AEGIS</b> · STRIPE</div>
+      <div class="mhead">
+        <div class="burger"><i></i><i></i><i></i></div>
+        <div class="mlogo">
+          <svg viewBox="0 0 200 200"><polygon points="100,10 180,45 180,155 100,190 20,155 20,45" fill="none" stroke="#4FCEE4" stroke-width="10"/><circle cx="100" cy="100" r="26" fill="#4FCEE4"/><circle cx="100" cy="100" r="9" fill="#10131B"/><circle cx="144" cy="82" r="7" fill="#D9F24B"/></svg>
+          <span>ZEUSTA</span>
+        </div>
+        <div class="mcart">Cart · 0</div>
+      </div>
+      <div class="hero">
+        <h1>The <span>AI-Guarded</span> Digital Economy</h1>
+        <p>Five instant-delivery digital products built under the ZEUSTA trust framework.</p>
+        <a class="cta" href="#shop">Shop the collection</a>
+        <a class="cta yellow" href="#why">Why ZEUSTA</a>
+      </div>
+      <div class="trust">
+        <div>⚡ <b>Instant delivery</b></div>
+        <div>🔒 <b>Stripe-secured</b></div>
+        <div>🛡️ <b>AEGIS-guarded</b></div>
+        <div>🏢 <b>JDB Sales / ZEUSTA</b></div>
+      </div>
+      <h2 id="shop">The Collection<small>Swipe → · instant download</small></h2>
+      <div class="plist">
+        <div class="pcard"><img src="https://d2ol7oe51mr4n9.cloudfront.net/user_3GJd975B4Ec780O9XOwnwdY7BEs/02884f41-4988-44e5-afd8-d0fe86267589.png" alt=""><div class="pbody"><span class="pbadge">INSTANT</span><h3>ZEUS Business OS Toolkit</h3><p>Operate the company from one AI-native room.</p><div class="price"><span class="now">£49.00</span><span class="was">£69</span></div><a class="add" href="#">Add to cart</a></div></div>
+        <div class="pcard"><img src="https://d2ol7oe51mr4n9.cloudfront.net/user_3GJd975B4Ec780O9XOwnwdY7BEs/5f01d8e1-22f3-4c2b-a5d4-6284414fb6b7.png" alt=""><div class="pbody"><span class="pbadge">INSTANT</span><h3>AEGIS Security Assessment</h3><p>AEGIS-grade AI security baseline.</p><div class="price"><span class="now">£99.00</span><span class="was">£129</span></div><a class="add" href="#">Add to cart</a></div></div>
+        <div class="pcard"><img src="https://d2ol7oe51mr4n9.cloudfront.net/user_3GJd975B4Ec780O9XOwnwdY7BEs/84373599-f231-4dd8-a111-bae6cab06ff7.png" alt=""><div class="pbody"><span class="pbadge">INSTANT</span><h3>ZEUS Voice Assistant Kit</h3><p>Voice-first control, JARVIS-style.</p><div class="price"><span class="now">£29.00</span><span class="was">£39</span></div><a class="add" href="#">Add to cart</a></div></div>
+        <div class="pcard"><img src="https://d2ol7oe51mr4n9.cloudfront.net/user_3GJd975B4Ec780O9XOwnwdY7BEs/6cc8706d-32b8-4ed6-aa59-fe17f54e7709.png" alt=""><div class="pbody"><span class="pbadge">INSTANT</span><h3>NHS-Tech Supplier Playbook</h3><p>Route-to-market for NHS digital.</p><div class="price"><span class="now">£79.00</span><span class="was">£99</span></div><a class="add" href="#">Add to cart</a></div></div>
+        <div class="pcard"><img src="https://d2ol7oe51mr4n9.cloudfront.net/user_3GJd975B4Ec780O9XOwnwdY7BEs/f3a9d1f3-242f-4555-92a9-9d7317e0ef7f.png" alt=""><div class="pbody"><span class="pbadge">INSTANT</span><h3>ZEUSTA Brand &amp; Marketing Pack</h3><p>Logos, templates, launch kit.</p><div class="price"><span class="now">£39.00</span><span class="was">£49</span></div><a class="add" href="#">Add to cart</a></div></div>
+      </div>
+      <h2 id="why">Why ZEUSTA</h2>
+      <div class="how">
+        <div><b>1</b><p>Security-grade engineering — AEGIS standard</p></div>
+        <div><b>2</b><p>Instant fulfilment, paid to delivered in &lt;1 min</p></div>
+        <div><b>3</b><p>Lifetime updates included</p></div>
+        <div><b>4</b><p>Licence clarity, no lock-in</p></div>
+      </div>
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details><summary>How fast is delivery?</summary><p>Instant — your download link arrives with payment confirmation, usually under 30 seconds.</p></details>
+        <details><summary>What's the licence?</summary><p>Single-company use, stated on each product. No lock-in.</p></details>
+        <details><summary>Refunds?</summary><p>14-day digital-goods policy; support at jdbsale3@gmail.com.</p></details>
+      </div>
+      <footer>
+        <div class="logotext">ZEUSTA</div>
+        <p>All IP belongs to JDB Sales · ZEUSTRUSTAEGISSECURITY LTD · CH 17391549<br>66 Paul St, London EC2A 4NA</p>
+      </footer>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,88 @@
+{
+  "current": {
+    "color_schemes": {
+      "scheme-1": {
+        "settings": {
+          "background": "#10131B",
+          "background_gradient": "",
+          "text": "#FFFFFF",
+          "button": "#4FCEE4",
+          "button_label": "#10131B",
+          "secondary_button_label": "#4FCEE4",
+          "shadow": "#4FCEE4"
+        }
+      },
+      "scheme-2": {
+        "settings": {
+          "background": "#1B2030",
+          "background_gradient": "",
+          "text": "#FFFFFF",
+          "button": "#D9F24B",
+          "button_label": "#10131B",
+          "secondary_button_label": "#D9F24B",
+          "shadow": "#4FCEE4"
+        }
+      },
+      "scheme-3": {
+        "settings": {
+          "background": "#10131B",
+          "background_gradient": "radial-gradient(ellipse at 50% -20%, rgba(79,206,228,0.18), transparent 60%)",
+          "text": "#FFFFFF",
+          "button": "#4FCEE4",
+          "button_label": "#10131B",
+          "secondary_button_label": "#4FCEE4",
+          "shadow": "#2FA8C3"
+        }
+      }
+    },
+    "type_header_font": "inter_i4",
+    "type_body_font": "inter_i4",
+    "type_header_weight": "700",
+    "type_body_weight": "400",
+    "type_header_spacing": "0.05em",
+    "type_header_transform": "none",
+    "type_header_capitalize": false,
+    "type_body_letterspacing": "0.01em",
+    "heading_scale": "1.0",
+    "heading_h1": "2.5rem",
+    "heading_h2": "1.8rem",
+    "heading_h3": "1.3rem",
+    "heading_h4": "1.05rem",
+    "heading_h5": "1rem",
+    "heading_h6": "0.9rem",
+    "page_width": "1200",
+    "spacing_sections": "0px",
+    "spacing_sections_vertical": "0px",
+    "grid_horizontal_spacing": "4px",
+    "buttons_radius": "10",
+    "buttons_border_opacity": "0",
+    "buttons_border_thickness": "1",
+    "buttons_shadow_opacity": "12",
+    "buttons_shadow_horizontal_offset": "0",
+    "buttons_shadow_vertical_offset": "4",
+    "buttons_shadow_blur": "16",
+    "buttons_typography": "button",
+    "buttons_font_variant": "sans-serif",
+    "buttons_text_transform": "none",
+    "cards_radius": "14",
+    "badge_corner_radius": "20",
+    "text_boxes_radius": "12",
+    "inputs_radius": "10",
+    "inputs_shadow_opacity": "4",
+    "inputs_border_thickness": "1",
+    "inputs_border_opacity": "55",
+    "inputs_typography": "body",
+    "txt_font_variant": "sans-serif",
+    "price_font_variant": "sans-serif",
+    "sale_badge_color": "#D9F24B",
+    "sold_out_badge_color": "#9AA0AC",
+    "error_color": "#E72930",
+    "success_color": "#53C546",
+    "product_card_show_secondary_image": "hide",
+    "card_style": "standard",
+    "show_accent_on_sale_badge": false,
+    "show_icons_on_delivery": true,
+    "enable_section_transitions": true,
+    "maintenance_redirect": false
+  }
+}
