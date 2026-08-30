@@ -184,11 +184,14 @@ async def stripe_webhook(request: Request):
 | Log/DB unwritable | 200 (swallowed) | accepted | check `/opt/aegis/data` ownership (aegis:aegis) |
 
 ### 4.5 Registering storefront webhook subscriptions
-**STATUS (30 Aug 2026): API registration still BLOCKED — no valid Admin API credential.**
-- **VERIFIED FACTS:** store domain = **`xegrdn-7v.myshopify.com`** (NOT zeusai2026) · app = `zeus-ai-digital-app-1` · API client ID = `3e995f3109afedcee71f1802742e55f3` (from app session `aud` claim)
-- Tested and rejected on the CORRECT store: `shpss_40bec…` (client secret — 401), `b22f9e4e…` (401), OAuth client-credentials with client_id + both secrets → `missing or invalid client secret`
-- The OAuth error page shown in admin ("Missing code or shop param") is the embedded-app redirect error, unrelated to API auth.
-- **Therefore: MANUAL registration in the admin is the PRIMARY path** (no token needed). API loop remains ready if a valid `shpat_…` Admin API access token is ever obtained.
+**STATUS (30 Aug 2026): ✔ REGISTERED — 10 store-level webhooks live, signing secret installed, real-signature verified.**
+- Store: `xegrdn-7v.myshopify.com` · app `zeus-ai-digital-app-1` · client ID `3e995f3109afedcee71f1802742e55f3`
+- **Registered via Shopify Admin → Settings → Notifications → Webhooks (all JSON → `https://apiaegissecurity.tech/shopify/webhook`):**
+  `orders/create` · `orders/paid` · `orders/fulfilled` · `orders/cancelled` · `refunds/create` · `products/create` · `products/update` · `customers/create` · `customers/update` · `themes/publish`
+- **`app/uninstalled`, `app/scopes_update`, `checkouts/paid`** are app-level/checkout topics not on the store-level form — register via API if ever needed (not needed for income flow).
+- **Webhook signing secret (from the Shopify admin page "Your webhooks will be signed with…") installed** as `SHOPIFY_CLIENT_SECRET` in `/etc/aegis/shopify.env` — the value Shopify ACTUALLY signs with (earlier `b22f9e4e…`/`shpss_…` values were NOT the live HMAC key).
+- Real-signature E2E (30 Aug 2026, signed with the live secret exactly as Shopify): valid → **200 + action** · duplicate → **200 + skipped (idempotent)** · tampered → **400**. Claims store: 1 claim / 1 action / 1 skip for the test id.
+- **NEXT:** click **⋮ → Send test notification** on each webhook in Shopify admin → confirm each topic appears in `/opt/aegis/data/shopify-events.jsonl` with one action.
 
 **Manual path (2 min/webhook, no token needed):**
 1. Shopify Admin → **Settings → Notifications** (bottom of left menu) → scroll to **Webhooks** → **Create webhook**.
