@@ -186,6 +186,8 @@ async def stripe_webhook(request: Request):
 ### 4.5 Registering storefront webhook subscriptions
 **STATUS (30 Aug 2026): ✔ INTEGRATION COMPLETE — 10/10 store-level webhooks live, signing secret installed, real-signature verified, receipt flow to Google Sheets live. Remaining 3 app-level topics optional (see below).**
 - Store: `xegrdn-7v.myshopify.com` · app `zeus-ai-digital-app-1` · client ID `3e995f3109afedcee71f1802742e55f3`
+- **VERIFIED APP CONFIG (from Shopify app page, 30 Aug 2026):** status ACTIVE · **legacy install flow = TRUE** (→ Admin API token is a static `shpat_…`, only minted on install) · app URL https://example.com (placeholder) · embedded=true · webhook api_version **2026-07** · scopes: ~150 granted incl. read_all_orders/read_orders/write_orders/read_products/write_products/read_customers/write_customers/read_themes/write_themes/read_fulfillments — FULL read/write coverage
+- **INSTALL REQUIRED before any Admin API token exists** — installation is a browser action (merchant installs the app in the store admin); no server-side bypass. Once installed, the `shpat_…` token appears on the app's API credentials tab.
 - **Registered via Shopify Admin → Settings → Notifications → Webhooks (all JSON → `https://apiaegissecurity.tech/shopify/webhook`):**
   `orders/create` · `orders/paid` · `orders/fulfilled` · `orders/cancelled` · `refunds/create` · `products/create` · `products/update` · `customers/create` · `customers/update` · `themes/publish`
 - **`app/uninstalled`, `app/scopes_update`, `checkouts/paid`** are app-level/checkout topics not on the store-level form — register via API if ever needed (not needed for income flow).
