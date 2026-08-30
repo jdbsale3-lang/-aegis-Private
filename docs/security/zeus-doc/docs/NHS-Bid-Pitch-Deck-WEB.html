@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHS Bid Pitch Deck — ZEUSTA (Web version)</title>
+<style>
+  :root{--obsidian:#10131B;--obsidian2:#1B2030;--cyan:#4FCEE4;--acid:#D9F24B;--white:#FFFFFF;--muted:#9AA0AC;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--obsidian);color:var(--white);font-family:'Inter','Helvetica Neue',Arial,sans-serif;}
+  .bar{height:6px;background:linear-gradient(90deg,var(--cyan),var(--acid));}
+  .deck{max-width:900px;margin:0 auto;padding:30px 20px 60px;}
+  .slide{background:var(--obsidian2);border:1px solid rgba(79,206,228,.18);border-radius:18px;padding:34px 38px;margin-bottom:28px;box-shadow:0 18px 50px rgba(0,0,0,.35);}
+  .kicker{color:var(--acid);font-size:12px;font-weight:800;letter-spacing:3px;margin-bottom:10px;}
+  h1{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.12;margin-bottom:8px;}
+  h1 span{color:var(--cyan);}
+  h2{font-size:22px;font-weight:800;margin-bottom:14px;color:var(--cyan);}
+  .sub{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:16px;}
+  ul{list-style:none;}
+  li{padding:9px 0 9px 26px;border-bottom:1px solid rgba(79,206,228,.1);color:var(--muted);font-size:14.5px;line-height:1.55;position:relative;}
+  li:last-child{border-bottom:none;}
+  li::before{content:'▸';position:absolute;left:0;color:var(--cyan);font-weight:800;}
+  li b{color:var(--white);}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;}
+  th{background:var(--cyan);color:var(--obsidian);text-align:left;padding:10px 12px;}
+  td{padding:10px 12px;border-bottom:1px solid rgba(79,206,228,.15);color:var(--white);}
+  td:first-child{color:var(--acid);font-weight:700;}
+  .live{display:inline-block;background:#0A561A;border:1px solid #3DD66E;color:#9DF0B8;font-size:12px;font-weight:700;padding:8px 14px;border-radius:20px;margin-top:12px;}
+  .num{color:var(--muted);font-size:11px;letter-spacing:2px;margin-top:14px;}
+  footer{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 20px 40px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<div class="deck">
+
+  <div class="slide">
+    <div class="kicker">NHS DIGITAL IDENTITY</div>
+    <h1>ZEUS ID CARD SYSTEM</h1>
+    <div class="sub">One sovereign platform: ZEUS DOC threshold identity · AEGIS AI security · 50M-patient scale</div>
+    <div class="live">BID PROPOSITION FOR NHS ENGLAND</div>
+    <div class="num">ZEUSTRUSTAEGISSECURITY LTD · CH 17391549 · 66 Paul St, London EC2A 4NA</div>
+  </div>
+
+  <div class="slide">
+    <h2>The Two Lessons We Have Learned</h2>
+    <ul>
+      <li><b>Lesson 1 — the Estonia proof:</b> national eID — physical PKI card + PINs, Mobile-ID/Smart-ID; eID used for identification, e-signing and secure transfer by 1.3M citizens.</li>
+      <li><b>Lesson 2 — the SplitKey reference:</b> threshold cryptography — the private key is SPLIT across the user's devices, never whole anywhere; tokenless, passwordless, hardware-grade in software.</li>
+    </ul>
+    <div class="sub" style="margin-top:16px;color:var(--acid);font-weight:700;">ZEUS delivers BOTH — plus an AI security layer and full UK sovereignty, built for NHS England.</div>
+  </div>
+
+  <div class="slide">
+    <h2>Introducing ZEUS DOC</h2>
+    <div class="sub">Digital Operations &amp; Certificates — our own tokenless, passwordless identity + signing software.</div>
+    <ul>
+      <li><b>Zero passwords</b> — no OTP, no tokens; challenge/response co-signature (5-min TTL, constant-time compare)</li>
+      <li><b>Split-key security</b> — Shamir t-of-n: the master key never exists whole; losing a device changes nothing</li>
+      <li><b>Non-repudiation</b> — every consent record digitally signed and verified — legally strong signatures</li>
+      <li><b>Audit ledger</b> — HMAC-verified, idempotent receipts — every auth and signing event traceable</li>
+    </ul>
+    <div class="live">LIVE TODAY — apiaegissecurity.tech/zeusdoc · E2E passed: create → 2-of-3 auth → sign → verify → tamper rejected</div>
+  </div>
+
+  <div class="slide">
+    <h2>The NHS ID Card System — 50M Scale</h2>
+    <div class="sub">Bureau-certified manufacture + ZEUS DOC software spine + AEGIS security — one UK-sovereign programme.</div>
+    <ul>
+      <li><b>Smart cards</b> — 50M NHS ID cards (bureau model: Certus / G+D / Thales / Entrust — RFIs sent)</li>
+      <li><b>Digital identity</b> — ZEUS DOC tokenless identity on every patient's devices, passwordless</li>
+      <li><b>Consent &amp; audit</b> — signed consent records, verify-able receipt ledger — compliance by design</li>
+      <li><b>Security</b> — AEGIS AI platform: 8 modules, 37 endpoints, 24 layers — injection defense, watermarking</li>
+      <li><b>Compliance</b> — DTAC · DSPT · UK GDPR · DPIA · NHS T&amp;Cs IP clauses — drafted, ready</li>
+    </ul>
+  </div>
+
+  <div class="slide">
+    <h2>Why ZEUS — And Why Not The Reference</h2>
+    <table>
+      <tr><th>Dimension</th><th>ZEUS</th><th>SplitKey / Estonia</th></tr>
+      <tr><td>UK sovereignty</td><td>Yes — JDB Sales IP, UK holding co</td><td>Foreign vendor</td></tr>
+      <tr><td>AI threat layer</td><td>AEGIS: 8 modules, injection defense</td><td>None advertised</td></tr>
+      <tr><td>NHS compliance</td><td>DTAC / DSPT / UK GDPR / DPIA</td><td>EU eIDAS</td></tr>
+      <tr><td>Scale</td><td>50M patients</td><td>1.3M (EE) / enterprise</td></tr>
+      <tr><td>Consent ledger</td><td>Signed, idempotent receipts</td><td>Generic signing logs</td></tr>
+    </table>
+    <div class="sub" style="margin-top:10px;">Honest note: reference holds EAL4+ Common Criteria — ZEUS scopes this as a follow-on workstream while leading on AI security + NHS-native compliance.</div>
+  </div>
+
+  <div class="slide">
+    <h2>Live Evidence — Not A Slide</h2>
+    <ul>
+      <li><b>AEGIS live</b> — 8 modules · 37 endpoints · /nhs-compliance 200 · prompt-injection blocked (DAN 0.8)</li>
+      <li><b>ZEUS DOC live</b> — apiaegissecurity.tech/zeusdoc — E2E passed: create → challenge → 2-of-3 auth → sign → verify</li>
+      <li><b>Integrity</b> — 113/113 tests · AIDE nightly tamper-detection · S3 + local backups</li>
+      <li><b>Frontend</b> — NHS ID card UI (patient portal) ready — passwordless sign-in flow</li>
+    </ul>
+    <div class="live">Demo script on request — live calls, no canned screenshots.</div>
+  </div>
+
+  <div class="slide">
+    <h2>Commercial &amp; Next Steps</h2>
+    <ul>
+      <li><b>IP &amp; ownership</b> — All IP belongs to JDB Sales, licensed to ZEUSTA — UK economic retention</li>
+      <li><b>Model</b> — certified-bureau manufacture + ZEUS DOC software + AEGIS security — single programme</li>
+      <li><b>EAL4+ readiness</b> — crypto core isolated → scoped Common Criteria workstream if required</li>
+      <li><b>Pilot</b> — one trust/region pilot → 50M rollout roadmap</li>
+      <li><b>Next milestone</b> — NHS England meeting Thu 1 Oct 16:00 — live demo ready</li>
+    </ul>
+  </div>
+
+</div>
+<footer>NHS Bid Pitch Deck — ZEUSTA · All IP belongs to JDB Sales · Licensed to ZEUSTRUSTAEGISSECURITY LTD (CH 17391549)<br>Web version — opens in any browser. PPTX + PDF also available.</footer>
+</body>
+</html>
