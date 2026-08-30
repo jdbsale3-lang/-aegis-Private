@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="cyangrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FCEE4"/>
+      <stop offset="100%" stop-color="#2FA8C3"/>
+    </linearGradient>
+    <linearGradient id="darkgrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10131B"/>
+      <stop offset="100%" stop-color="#1B2030"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="1200" height="400" fill="url(#darkgrad)"/>
+  <!-- Hex shield motif -->
+  <g transform="translate(120,80)">
+    <polygon points="100,0 187,37 187,150 100,200 13,150 13,37" fill="none" stroke="url(#cyangrad)" stroke-width="10"/>
+    <polygon points="100,28 163,55 163,142 100,172 37,142 37,55" fill="none" stroke="#4FCEE4" stroke-width="4" opacity="0.45"/>
+    <!-- core node -->
+    <circle cx="100" cy="98" r="22" fill="url(#cyangrad)"/>
+    <circle cx="100" cy="98" r="8" fill="#10131B"/>
+    <!-- orbits -->
+    <ellipse cx="100" cy="98" rx="52" ry="18" fill="none" stroke="#4FCEE4" stroke-width="3" opacity="0.8" transform="rotate(-24 100 98)"/>
+    <circle cx="148" cy="82" r="7" fill="#D9F24B"/>
+    <circle cx="59" cy="118" r="5" fill="#4FCEE4"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="380" y="210" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="92" fill="#FFFFFF" letter-spacing="6">ZEUSTA</text>
+  <text x="386" y="262" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="24" fill="#4FCEE4" letter-spacing="10">TRUST · AEGIS · SECURITY</text>
+  <!-- acid accent underline -->
+  <rect x="382" y="292" width="220" height="8" fill="#D9F24B"/>
+  <text x="382" y="340" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#9AA0AC" letter-spacing="3">THE AI-GUARDED DIGITAL ECONOMY</text>
+</svg>

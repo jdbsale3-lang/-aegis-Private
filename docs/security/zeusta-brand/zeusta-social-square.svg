@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10131B"/>
+      <stop offset="100%" stop-color="#1B2030"/>
+    </linearGradient>
+    <linearGradient id="cyanc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FCEE4"/>
+      <stop offset="100%" stop-color="#2FA8C3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="1000" fill="url(#bg)"/>
+  <!-- Hex shield -->
+  <g transform="translate(500,500) scale(2.9) translate(-100,-100)">
+    <polygon points="100,0 187,37 187,150 100,200 13,150 13,37" fill="none" stroke="url(#cyanc)" stroke-width="10"/>
+    <polygon points="100,28 163,55 163,142 100,172 37,142 37,55" fill="none" stroke="#4FCEE4" stroke-width="4" opacity="0.45"/>
+    <circle cx="100" cy="98" r="22" fill="url(#cyanc)"/>
+    <circle cx="100" cy="98" r="8" fill="#10131B"/>
+    <ellipse cx="100" cy="98" rx="52" ry="18" fill="none" stroke="#4FCEE4" stroke-width="3" opacity="0.8" transform="rotate(-24 100 98)"/>
+    <circle cx="148" cy="82" r="7" fill="#D9F24B"/>
+    <circle cx="59" cy="118" r="5" fill="#4FCEE4"/>
+  </g>
+  <!-- Z monogram -->
+  <text x="500" y="760" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="120" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">Z</text>
+  <!-- acid corner -->
+  <rect x="0" y="900" width="100" height="100" fill="#D9F24B"/>
+</svg>

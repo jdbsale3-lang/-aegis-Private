@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10131B"/><stop offset="100%" stop-color="#1B2030"/>
+    </linearGradient>
+    <linearGradient id="cyanc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FCEE4"/><stop offset="100%" stop-color="#2FA8C3"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect x="40" y="40" width="720" height="920" fill="none" stroke="#4FCEE4" stroke-width="3" opacity="0.5"/>
+  <rect x="0" y="0" width="120" height="120" fill="#D9F24B"/>
+  <text x="60" y="76" font-family="Arial" font-weight="bold" font-size="44" fill="#10131B" text-anchor="middle">Z</text>
+  <text x="400" y="300" font-family="Arial" font-weight="bold" font-size="52" fill="#4FCEE4" text-anchor="middle" letter-spacing="6">VOICE</text>
+  <text x="400" y="470" font-family="Arial" font-weight="bold" font-size="58" fill="#FFFFFF" text-anchor="middle">ZEUS Voice Assistant Starter Kit</text>
+  <rect x="260" y="520" width="280" height="8" fill="#D9F24B"/>
+  <text x="400" y="600" font-family="Arial" font-size="28" fill="#9AA0AC" text-anchor="middle">Voice-first control for your desk, workshop or home office.</text>
+  <text x="400" y="760" font-family="Arial" font-weight="bold" font-size="40" fill="#4FCEE4" text-anchor="middle">INSTANT DELIVERY</text>
+  <text x="400" y="880" font-family="Arial" font-size="24" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">ZEUSTRUSTAEGISSECURITY LTD</text>
+</svg>
