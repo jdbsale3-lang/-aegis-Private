@@ -77,7 +77,45 @@ All IP belongs to JDB Sales; JDB Sales licenses IP to ZEUSTA (holding co).
 - Every external commitment stops for Darren's approval (section 5). Nothing is invented: no fake amounts, no guessed deadlines, no unverified "done".
 - Maintains the audit trail: every event in the JSONL logs, every change recorded.
 
-## 7. FIRST 7 DAYS (ramp checklist)
+## 7. PAYROLL & PENSION MODULE (UK RTI)
+**Scope:** payroll for ZEUSTA directors/employees, run monthly in line with HMRC RTI (Real Time Information) — FPS submitted on or before each payday.
+
+### 7.1 Payroll data (Sheet 10: Payroll & Pension)
+| Field | What to record |
+|---|---|
+| Employee | name, NI number, DOB, start date, tax code (e.g. 1257L), NI category (A/B/C/M) |
+| Pay | gross pay, taxable pay, pay frequency (monthly), pensionable pay |
+| Deductions | PAYE (tax), Class 1 NI (employee), pension (employee share), student loan (if any) |
+| Employer costs | Employer NI (13.8% above threshold 2026/27), pension employer contribution (min 3% auto-enrolment) |
+| Payment | net pay = gross − PAYE − NI − pension; payday + FPS submission |
+
+### 7.2 Monthly payroll run (the Accounts Department executes this)
+1. Confirm with Darren: gross pay figures, any changes (new starter P45/P46, leaver P45), tax code notices from HMRC.
+2. Compute deductions with current-year rates (HMRC tables):
+   - **PAYE:** tax-free personal allowance (£12,570) → tax bands (20% basic / 40% higher / 45% additional).
+   - **Class 1 NI (employee):** 8% above £1,048/mo Primary Threshold; 2% above Upper Earnings Limit (£4,189/mo 2026/27).
+   - **Employer NI:** 13.8% above £758/mo Secondary Threshold (negligible for small payroll).
+   - **Pension (auto-enrolment):** 3% employer min, 5% employee qualifying earnings (or scheme rules).
+3. Produce the payslip: gross → deductions → net.
+4. **FPS (Full Payment Submission):** submit to HMRC on/ before payday (via HMRC Basic PAYE Tools or payroll provider — Darren authenticates/files; ZEUSTA prepares all figures).
+5. Pension: submit contribution schedule to the pension provider by their cut-off; remit employee + employer contributions.
+6. Bank: pay net salaries from the ZEUSTA account (Darren approves payment list first — gate).
+7. Record: update Sheet 10; archive payslips + FPS receipts to Drive.
+
+### 7.3 Year-end & statutory
+- **P60** for each employee by 31 May (year to 5 Apr) — generate from year-to-date figures.
+- **P45** on leavers.
+- **P11D** (benefits) only if benefits provided; **P11D(b)** Class 1A if so.
+- **EPS** (Employer Payment Summary) to reclaim statutory payments / report adjustments.
+- Auto-enrolment **re-enrolment duty** every 3 years; keep records.
+- Zero/low payroll: still file monthly EPS/FPS where required; HMRC late-filing penalties apply — never skip the FPS.
+
+### 7.4 Checks & gates
+- Every payroll run → Darren approves totals (gross, deductions, net, pension, payday) BEFORE any submission or payment.
+- Verify figures against HMRC thresholds for the tax year before use (rates change each April).
+- Never invent tax codes, NI numbers, or pay figures — ask Darren or check HMRC records.
+
+## 8. FIRST 7 DAYS (ramp checklist)
 1. ✅ Stripe live + verified (key in secrets, webhook receiving)
 2. ✅ Webhook auth + idempotency + test suite (113 tests green)
 3. ⏳ Shopify storefront webhooks (needs `shpat_…` Admin token) → then test `orders/paid`
