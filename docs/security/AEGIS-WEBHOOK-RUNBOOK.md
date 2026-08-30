@@ -1,7 +1,17 @@
 # AEGIS WEBHOOK RUNBOOK — Outage, Monitoring & Idempotency
-**Version:** 1.1 · 30 Aug 2026 · All IP belongs to JDB Sales.
+**Version:** 1.3 · 30 Aug 2026 · All IP belongs to JDB Sales.
 
-Covers the AEGIS webhook receivers at `https://apiaegissecurity.tech/stripe/webhook` (STRIPE — **live**) and `https://apiaegissecurity.tech/shopify/webhook` (SHOPIFY — **live**: receiver wired + idempotency verified 30 Aug 2026; storefront subscription registration needs the Shopify store domain).
+Covers the AEGIS webhook receivers at `https://apiaegissecurity.tech/stripe/webhook` (STRIPE — **live**) and `https://apiaegissecurity.tech/shopify/webhook` (SHOPIFY — **live**: receiver wired + idempotency verified 30 Aug 2026; storefront registration pending a valid Admin API token).
+
+---
+
+## TABLE OF CONTENTS
+1. **RUNBOOK — WEBHOOK OUTAGE** — detection signals, 5-min triage, common-cause fixes, redelivery, communication
+2. **WEBHOOK MONITORING** — health endpoints, 4-metric dashboard, scheduled checks, log rotation
+3. **IDEMPOTENCY IMPLEMENTATION GUIDE** — at-least-once contract, dedupe rule, storage options (SQL), handler shape, tests
+4. **SHOPIFY-SPECIFIC RUNBOOK** — receiver spec, topics, delivery/retry model, failure modes, registration, redelivery, E2E records
+5. **IDEMPOTENCY TEST SUITE** — command, coverage, regression gate
+6. **FAILURE REMEDIATION STEPS** — play-by-play DETECT → DIAGNOSE → FIX → VERIFY for six failure classes
 
 ---
 
@@ -174,9 +184,14 @@ async def stripe_webhook(request: Request):
 | Log/DB unwritable | 200 (swallowed) | accepted | check `/opt/aegis/data` ownership (aegis:aegis) |
 
 ### 4.5 Registering storefront webhook subscriptions
-**DECISION (30 Aug 2026): Darren registers manually in the Shopify admin.** The receiver is live and verified; the Admin-API registration path remains available if ever preferred.
+**STATUS (30 Aug 2026): ATTEMPTED via API → HTTP 401, registration BLOCKED on token type.**
+- Store domain supplied: `zeusai2026.myshopify.com` · app: `zeus-ai-digital-app-1`
+- `GET /admin/api/2024-10/shop.json` with the supplied token → **HTTP 401 "Invalid API key or access token"**
+- **Root cause:** the token sent (`shpss_…`) is the app **client secret** (used ONLY for webhook HMAC verification), not an Admin API bearer token. Shopify Admin API calls need the **Admin API access token** from the custom app — it starts with **`shpat_`** (found in Shopify Admin → Settings → Apps and sales channels → `zeus-ai-digital-app-1` → **Admin API access token**; the client secret `shpss_…` is on the same page, different field).
+- The `b22f9e4e…` value is the webhook HMAC key and is already correctly installed at `/etc/aegis/shopify.env` as `SHOPIFY_CLIENT_SECRET` — no change needed there.
+- **Fix:** obtain the `shpat_…` Admin API access token from the custom app page, provide it to ZEUS (replaces `SHOPIFY_ACCESS_TOKEN` in `/etc/aegis/shopify.env`), then registration runs for all 13 topics.
 
-**Manual path (2 min/webhook):**
+**Manual path (2 min/webhook, no token needed):**
 1. Shopify Admin → **Settings → Notifications** (bottom of left menu) → scroll to **Webhooks** → **Create webhook**.
 2. For each topic below: select topic, **Format: JSON**, **Endpoint: HTTPS**, Address: `https://apiaegissecurity.tech/shopify/webhook`, then **Save**.
 3. After saving, click the webhook's **⋮ → Send test notification** — the event lands in `/opt/aegis/data/shopify-events.jsonl` and the action fires once (verification recipe in §4.7).
@@ -184,13 +199,13 @@ async def stripe_webhook(request: Request):
 **The 13 topics to register:**
 `orders/create` · `orders/paid` · `orders/fulfilled` · `orders/cancelled` · `refunds/create` · `products/create` · `products/update` · `customers/create` · `customers/update` · `app/uninstalled` · `app/scopes_update` · `checkouts/paid` · `themes/publish`
 
-**API alternative (if preferred later):**
+**API loop (when a valid `shpat_…` token is available):**
 ```
 POST /admin/api/2024-10/webhooks.json
-headers: X-Shopify-Access-Token: <SHOPIFY_ACCESS_TOKEN>
+headers: X-Shopify-Access-Token: <shpat_…>
 {"webhook": {"topic": "orders/paid", "address": "https://apiaegissecurity.tech/shopify/webhook", "format": "json"}}
 ```
-Access token is stored at `/etc/aegis/shopify.env` → `SHOPIFY_ACCESS_TOKEN`. ZEUS can run this loop for all 13 topics the moment the store domain is provided.
+Repeat for all 13 topics; verify with `GET /admin/api/2024-10/webhooks.json`.
 
 ### 4.6 Redelivery / testing
 - **Manual resend:** Shopify Admin → Settings → Notifications → Webhooks → the webhook → **Recent deliveries** → kebab menu → **Resend**.
