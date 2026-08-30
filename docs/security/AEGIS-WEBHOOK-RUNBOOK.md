@@ -1,7 +1,7 @@
 # AEGIS WEBHOOK RUNBOOK — Outage, Monitoring & Idempotency
-**Version:** 1.0 · 30 Aug 2026 · All IP belongs to JDB Sales.
+**Version:** 1.1 · 30 Aug 2026 · All IP belongs to JDB Sales.
 
-Covers the AEGIS webhook receiver at `https://apiaegissecurity.tech/stripe/webhook` (STRIPE — **live**) and the Shopify webhook integration (SHOPIFY — **credentials staged, not yet connected**).
+Covers the AEGIS webhook receivers at `https://apiaegissecurity.tech/stripe/webhook` (STRIPE — **live**) and `https://apiaegissecurity.tech/shopify/webhook` (SHOPIFY — **live**: receiver wired + idempotency verified 30 Aug 2026; storefront subscription registration needs the Shopify store domain).
 
 ---
 
@@ -145,5 +145,55 @@ async def stripe_webhook(request: Request):
 - [ ] Documented in this runbook (this section)
 
 ---
+
+## 4. SHOPIFY-SPECIFIC RUNBOOK
+
+### 4.1 Receiver (live)
+- Endpoint: `https://apiaegissecurity.tech/shopify/webhook` (public, HTTPS)
+- Signature: **HMAC-SHA256, Base64-encoded** in `X-Shopify-Hmac-Sha256` header — key = Shopify app **Client Secret** (`/etc/aegis/shopify.env` → `SHOPIFY_CLIENT_SECRET`, env only, never in code/logs/docs)
+- Headers used: `X-Shopify-Topic`, `X-Shopify-Shop-Domain`, `X-Shopify-Webhook-Id`, `X-Shopify-Api-Version`
+- Event log: `/opt/aegis/data/shopify-events.jsonl` (writable dir owned `aegis:aegis`)
+- Auth: `/shopify/webhook` + `/shopify/webhook/health` public; `/shopify/webhook/status` + `/events` key-gated (same pattern as Stripe)
+
+### 4.2 Topics wired
+`orders/create` · `orders/paid` · `orders/fulfilled` · `orders/cancelled` · `refunds/create` · `products/create` · `products/update` · `customers/create` · `customers/update` · `app/uninstalled` · `app/scopes_update` · `checkouts/paid` · `themes/publish`
+(All others: logged, 200-acknowledged, ignored.)
+
+### 4.3 Delivery & retry behavior (Shopify-side)
+- Shopify POSTs each webhook to the subscription address; must respond **2xx within ~5 seconds** (we return `ok` immediately after verify+claim).
+- Failed deliveries: Shopify retries **up to 19 times over 48 hours** with exponential backoff. After that the delivery is dropped from the queue (no permanent dashboard "failed" stash like Stripe — check the **webhook's Recent deliveries** page in Shopify admin).
+- Each attempt is a fresh POST; the HMAC is recomputed per attempt with the same Client Secret — our verification passes on every retry.
+- **Idempotency is mandatory:** the same `X-Shopify-Webhook-Id` arrives on every attempt. Our shared `processed_events` store claims by webhook id — first attempt acts, the rest are acknowledged and skipped (proven: order 1005 → exactly 1 action, 1 claim, 3 deliveries, 2 skipped).
+
+### 4.4 Failure modes — this endpoint
+| Mode | Response | Shopify reaction | Fix |
+|---|---|---|---|
+| HMAC mismatch / missing header | 400 | retries (19x/48h) | check `SHOPIFY_CLIENT_SECRET` matches the app in the Partner Dashboard |
+| Secret unset | 500 | retries | fix `/etc/aegis/shopify.env` → restart service |
+| Server down | no response | retries | health probe `/shopify/webhook/health`, restart service |
+| Log/DB unwritable | 200 (swallowed) | accepted | check `/opt/aegis/data` ownership (aegis:aegis) |
+
+### 4.5 Registering storefront webhook subscriptions (NOT yet done)
+The receiver is live, but Shopify must be told to POST to it. Requires the **store domain** (e.g. `store.myshopify.com`) — provide it to ZEUS and it registers via Admin API:
+```
+POST /admin/api/2024-10/webhooks.json
+headers: X-Shopify-Access-Token: <SHOPIFY_ACCESS_TOKEN>
+{"webhook": {"topic": "orders/paid", "address": "https://apiaegissecurity.tech/shopify/webhook", "format": "json"}}
+```
+(Or manually: Shopify Admin → Settings → Notifications → Webhooks → Add webhook.) Repeat per topic from 4.2. Access token is stored at `/etc/aegis/shopify.env` → `SHOPIFY_ACCESS_TOKEN`.
+
+### 4.6 Redelivery / testing
+- **Manual resend:** Shopify Admin → Settings → Notifications → Webhooks → the webhook → **Recent deliveries** → kebab menu → **Resend**.
+- **Sandbox test:** the E2E signed-delivery recipe (compute Base64 HMAC, POST with headers) — used to verify this receiver; 3× same-id delivery asserted 1 action / 2 suppressed.
+- Use `orders/paid` as the canary topic — like `invoice.payment_succeeded` on Stripe, it's the "money moved" signal and the one that feeds the receipt/accounting automations.
+
+## 5. IDEMPOTENCY TEST SUITE
+Run from `backend/`:
+```
+venv/bin/python -m pytest tests/test_webhook_idempotency.py -v
+```
+- 12 tests: atomic claim semantics · Stripe first-delivery/duplicate/bad-signature/replay-window/different-events · Shopify first-delivery/duplicate/bad-HMAC/derived-id dedupe · PII-free health endpoints
+- Works against the real router code with isolated tmp env (DB + logs) — no network needed
+- **Regression gate:** any change to the webhook receivers must keep this suite green (it already caught the root-owned-DB bug and the base64-vs-hex HMAC bug in the initial wiring)
 
 **END — All IP belongs to JDB Sales.**
