@@ -244,6 +244,25 @@ venv/bin/python -m pytest tests/test_webhook_idempotency.py -v
 - Works against the real router code with isolated tmp env (DB + logs) — no network needed
 - **Regression gate:** any change to the webhook receivers must keep this suite green (it already caught the root-owned-DB bug and the base64-vs-hex HMAC bug in the initial wiring)
 
+## 5b. WEBHOOK TEST SUITE — FULL COVERAGE MAP
+When to run what, end to end:
+
+| Layer | What | When | Command / recipe |
+|---|---|---|---|
+| 1. Unit — idempotency store | claim atomicity, dedupe, missing-id | every code change / CI | `pytest tests/test_webhook_idempotency.py` |
+| 2. Unit — receivers | Stripe + Shopify routes, signatures, health gating | every code change / CI | same suite (TestClient, isolated tmp env) |
+| 3. Live — auth matrix | public vs key-gated paths | after any deploy | curl matrix: `/health`, `/stripe/webhook/health`, `/shopify/webhook/health` → 200; `/status`, `/events` → 401; unsigned POST → 400 |
+| 4. Live — signed delivery (Stripe) | HMAC verify + action + log | after deploy / quarterly | E2E recipe (STRIPE-OPERATIONS §4c): build `t=…,v1=…` from `STRIPE_WEBHOOK_SECRET`, POST 1× expect 200 + `PAYMENT RECEIVED` log |
+| 5. Live — signed delivery (Shopify) | Base64 HMAC verify + action + log | after deploy / quarterly | E2E recipe (§4.7): `Base64(HMAC-SHA256(client_secret, body))`, POST 1× expect 200 + `SHOPIFY ORDER PAID` log |
+| 6. Live — idempotency proof | 3× same id → 1 action | after deploy / quarterly | signed same-id delivery ×3 → assert 1 claim in `processed_events`, 2 skips in journal |
+| 7. Provider-dashboard | real end-to-end (no synthetic data) | monthly, after a real payment/order | Stripe: real webhook from a payment; Shopify: **Send test notification** from Settings → Notifications → Webhooks |
+| 8. Reconcile | money moved vs events seen | weekly (KPI brief) | invoice/order list vs `/opt/aegis/data/*-events.jsonl` (§6.5) |
+
+**CI wiring (recommended):** add the unit suite to the repo's CI workflow (it runs offline, ~1s) so every PR re-proves idempotency. Steps 3–6 are the manual deploy checklist; 7–8 are monthly/weekly operational checks.
+
+## 5c. CANARY TOPIC
+Use **`orders/paid`** (Shopify) and **`invoice.payment_succeeded`** (Stripe) as the "money moved" canaries — first sign of life after any change, first sign of trouble after an outage. The weekly reconciliation (8) compares these against actual income.
+
 ## 6. FAILURE REMEDIATION STEPS (play by play)
 
 Each failure below is ordered: DETECT → DIAGNOSE → FIX → VERIFY. Run them in order; stop when the verify step passes.
