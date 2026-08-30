@@ -113,6 +113,8 @@ When an event shows **`failed`** (or you just want it re-sent):
 - **Ordering is not guaranteed:** Stripe delivers events as they happen and retries can arrive out of order. Never assume chronological order — use the event/object `created` timestamps when sequencing matters (e.g. `invoice.paid` before `invoice.payment_succeeded` is possible).
 - **Health probe for monitors:** `GET /stripe/webhook/health` (public, PII-free) → `{"status":"ok","configured":true,"event_log_size":…}` — wire this into any uptime watcher to catch the "server down" failure mode early.
 
+> **For the full playbook:** outage response (section 1), monitoring (section 2), and the idempotency implementation guide with `processed_events` SQL (section 3) live in **`AEGIS-WEBHOOK-RUNBOOK.md`** — same folder.
+
 ## 6. LIVE PRODUCTS / PRICES (existing)
 | Product | id |
 |---|---|
