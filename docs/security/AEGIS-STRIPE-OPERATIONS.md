@@ -35,6 +35,18 @@
 | Event log | `/opt/aegis/stripe-events.jsonl` (append-only, owned by user `aegis`) |
 | Auth | `/stripe/webhook` whitelisted in the API-key middleware (Stripe can't send a key); **all other `/stripe/*`** endpoints remain key-gated |
 
+### Auth whitelist map (THE COMPLETE RULE — production)
+| Path | Public (no key) | Why |
+|---|---|---|
+| `/health` | ✅ | uptime |
+| `/api/v1/register` (+ prefix) | ✅ | on-boarding |
+| `/terms` | ✅ | legal |
+| `/stripe/webhook` (POST) | ✅ | Stripe delivery — signature verified inside handler (HMAC, 5-min window) |
+| `/stripe/webhook/health` (GET) | ✅ | PII-free uptime probe for monitors |
+| `/stripe/webhook/status` (GET) | 🔒 401 | reveals config — key-gated |
+| `/stripe/webhook/events` (GET) | 🔒 401 | reveals event data (may include emails) — key-gated |
+| everything else | 🔒 401 | standard API-key gate + RBAC + quota |
+
 ### Enabled events (12)
 `checkout.session.completed` · `invoice.paid` · `invoice.payment_succeeded` · `invoice.payment_failed` · `invoice.finalized` · `payment_intent.succeeded` · `payment_intent.payment_failed` · `customer.subscription.created` · `customer.subscription.updated` · `customer.subscription.deleted` · `customer.created` · `customer.deleted`
 
@@ -50,11 +62,24 @@
 ### Internal endpoints (key-gated)
 - `GET /stripe/webhook/status` — configured? recent 5 events
 - `GET /stripe/webhook/events?limit=N` — last N received events
+- `GET /stripe/webhook/health` — PUBLIC: `{status, service, configured, event_log_size}` — no PII
 
-## 5. E2E TEST RECORD (30 Aug 2026)
-1. `evt_test_zeus_e2e_001` (invoice.payment_succeeded, gbp 5000.0) → HTTP 200, action fired `PAYMENT RECEIVED gbp 5000.0` — found + fixed log permission bug
-2. `evt_test_zeus_e2e_002` (invoice.payment_succeeded, gbp 30000.0) → HTTP 200, full event record appended to JSONL ✅
-3. Unsigned POST → HTTP 400 ✅ · no-key GET /status → HTTP 401 ✅
+## 4b. INVOICE LIFECYCLE (tested end-to-end 30 Aug 2026)
+Full recipe (verified live):
+1. **Create customer** → `POST /v1/customers` → `cus_…`
+2. **Add line item** → `POST /v1/invoiceitems` `customer=…&amount=…&currency=gbp&description=…`
+3. **Draft invoice** → `POST /v1/invoices` `customer=…&auto_advance=false` → `in_…` (status `draft`). Note: line items attach to the NEXT invoice created after them — if draft already exists, pass `invoice=in_…` on the invoiceitems call.
+4. **Finalize** → `POST /v1/invoices/{id}/finalize` → status `open`, `number` assigned, `hosted_invoice_url` + `invoice_pdf` generated. No charge yet.
+5. **Customer pays** (hosted page) → `invoice.payment_succeeded` + `invoice.paid` webhooks → AEGIS logs `PAYMENT RECEIVED` → automation hooks.
+6. **Void** → `POST /v1/invoices/{id}/void` (uncollectable/test cleanup).
+
+## 4c. E2E TEST RECORD — REAL DELIVERY (30 Aug 2026)
+Earlier synthetic signed tests (evt_test_zeus_e2e_001/002) proved verification + action. Then the real world:
+- Finalized `in_1UA6LoIacLYfMphYoEW7EJnm` (GBP 1.00) → status `open`, invoice number **YTYJT4JO-0002**
+- Stripe delivered **(from Stripe's own IP 54.187.174.169)** → `evt_1UA6kFIacLYfMphYNi9FKHHw` `invoice.finalized` → **HTTP 200**, logged to JSONL ✅
+- `hosted_invoice_url` → **HTTP 200** (live payment page) · `invoice_pdf` → 302 (file)
+- Unsigned POST → 400 ✅ · no-key `/status` → 401 ✅ · no-key `/health` → 200 ✅
+- **E2E verdict: real Stripe → AEGIS delivery confirmed with zero synthetic payloads.**
 
 ## 6. LIVE PRODUCTS / PRICES (existing)
 | Product | id |
