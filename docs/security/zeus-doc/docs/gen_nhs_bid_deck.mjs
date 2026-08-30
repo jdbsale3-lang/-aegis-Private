@@ -111,7 +111,28 @@ ev.forEach((r, i) => {
 s.addText("Demo script on request — live calls, no canned screenshots.", { x: 0.6, y: 4.9, w: 8.8, h: 0.4, fontSize: 14, color: CYAN, bold: true });
 footer(s, 6);
 
-// ── 7 Commercial frame ──
+// ── 7 Commercial model — tiers ──
+s = p.addSlide(); s.background = { color: OBS };
+s.addText("COMMERCIAL MODEL — TIERS", { x: 0.6, y: 0.45, w: 8.8, h: 0.5, fontSize: 22, color: CYAN, bold: true });
+s.addText("Anchored to the programme business case: £24.4B value · 28.2x ROI · 10yr NHS England. Indicative, negotiable.", { x: 0.6, y: 1.0, w: 8.8, h: 0.4, fontSize: 13, color: MUTED });
+const tiers = [
+  ["Pilot", "One ICB / trust region — ZEUS DOC + AEGIS + 100k cards", "£1.0M / yr", "Proof, live in 90 days"],
+  ["Regional", "ICS cluster — identity + consent ledger + data adapter", "£8M / yr", "Scaled evidence"],
+  ["National 50M", "NHS England full rollout — cards + ZEUS DOC + AEGIS + registries", "£86M / yr (10yr £865M)", "£24.4B · 28.2x ROI"],
+  ["White-label", "Licence / export — other public sectors, international", "Bespoke", "Recurring licence"],
+];
+tiers.forEach((r, i) => {
+  const y = 1.6 + i * 0.8;
+  s.addShape(p.ShapeType.roundRect, { x: 0.6, y, w: 8.8, h: 0.68, rectRadius: 0.07, fill: { color: PANEL }, line: { color: CYAN, width: 0.5 } });
+  s.addText(r[0], { x: 0.8, y: y + 0.1, w: 1.8, h: 0.45, fontSize: 13, color: ACID, bold: true });
+  s.addText(r[1], { x: 2.6, y: y + 0.1, w: 3.4, h: 0.45, fontSize: 10.5, color: WHITE });
+  s.addText(r[2], { x: 6.1, y: y + 0.1, w: 1.7, h: 0.45, fontSize: 11.5, color: CYAN, bold: true });
+  s.addText(r[3], { x: 7.9, y: y + 0.1, w: 1.5, h: 0.45, fontSize: 10, color: MUTED });
+});
+s.addText("Break-even at each tier covered by efficiency gains: signatures, consent automation, fraud reduction.", { x: 0.6, y: 4.95, w: 8.8, h: 0.4, fontSize: 12.5, color: ACID, bold: true });
+footer(s, 7);
+
+// ── 8 Commercial & next steps ──
 s = p.addSlide(); s.background = { color: OBS };
 s.addText("COMMERCIAL & NEXT STEPS", { x: 0.6, y: 0.45, w: 8.8, h: 0.5, fontSize: 22, color: CYAN, bold: true });
 const nxt = [
@@ -127,6 +148,6 @@ nxt.forEach((r, i) => {
   s.addText(r[1], { x: 3.8, y, w: 5.6, h: 0.6, fontSize: 12.5, color: WHITE });
 });
 s.addShape(p.ShapeType.rect, { x: 0, y: 5.5, w: 10, h: 0.12, fill: { color: ACID } });
-footer(s, 7);
+footer(s, 8);
 
 p.writeFile({ fileName: "/home/user/projects/zeus-doc/docs/NHS-Bid-Pitch-Deck-ZEUSTA.pptx" }).then(f => console.log("deck written:", f));
