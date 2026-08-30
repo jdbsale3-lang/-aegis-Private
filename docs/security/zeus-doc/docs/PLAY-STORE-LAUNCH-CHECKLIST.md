@@ -31,7 +31,9 @@ Both current packages use `zeusaiintellegence` (double-L, missing "i"). **Androi
 
 ## PHASE 3 — RELEASE (per app)
 - [ ] **Signing** — use **Play App Signing** (Google-hosted) — avoids losing a keystore; upload your AAB/APK
-- [ ] **Upload key certificate fingerprint (SHA-1):** `90:0B:50:71:3D:1E:76:54:DC:22:2E:09:04:71:A7:70:73:2B:15:01` (recorded 30 Aug 2026 — enter this in the console's App signing screen for both apps)
+- [ ] **Upload key certificate fingerprints (recorded 30 Aug 2026 — enter both in the console's App signing screen for both apps):**
+  - **SHA-1:** `90:0B:50:71:3D:1E:76:54:DC:22:2E:09:04:71:A7:70:73:2B:15:01`
+  - **SHA-256:** `83:5E:00:96:C9:F7:84:65:AA:25:CC:0A:EA:2B:5A:AB:31:5E:CD:A6:3F:EE:E5:62:F7:16:F3:D5:23:9E:7E:3F`
 - [ ] **Release track** — Production (or Closed testing first if you want gated pre-release)
 - [ ] **Rollout** — 100% (or staged: 20% → 50% → 100%)
 - [ ] **Versioning** — v1.0.0 (1) Calorie Lens · v1.0.0 (1) ForgeFit
