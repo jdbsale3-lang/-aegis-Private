@@ -187,6 +187,29 @@ headers: X-Shopify-Access-Token: <SHOPIFY_ACCESS_TOKEN>
 - **Sandbox test:** the E2E signed-delivery recipe (compute Base64 HMAC, POST with headers) — used to verify this receiver; 3× same-id delivery asserted 1 action / 2 suppressed.
 - Use `orders/paid` as the canary topic — like `invoice.payment_succeeded` on Stripe, it's the "money moved" signal and the one that feeds the receipt/accounting automations.
 
+### 4.7 E2E verification records (both runs PASSED, 30 Aug 2026)
+**Run A — `wh_test_zeus_005` (order 1005, £599.00):**
+| Check | Result |
+|---|---|
+| 3× same webhook id delivered | HTTP 200 · 200 · 200 |
+| Tampered HMAC | HTTP 400 |
+| Durable claims in `processed_events` | **1** (exactly one) |
+| Actions fired (`SHOPIFY ORDER PAID 1005`) | **1** |
+| Duplicate deliveries skipped | **2** |
+| Event-log deliveries recorded | **3** (audit trail complete) |
+
+**Run B — `wh_e2e_verify_1788090710` (order 2001, £749.00):**
+| Check | Result |
+|---|---|
+| 3× same webhook id delivered | HTTP 200 · 200 · 200 |
+| Tampered HMAC | HTTP 400 |
+| Durable claim stored | `[('wh_e2e_verify_1788090710', 'shopify:orders/paid')]` |
+| Actions fired (`SHOPIFY ORDER PAID 2001`) | **1** |
+| Duplicate deliveries skipped | **2** |
+| Event-log deliveries recorded | **3** |
+
+**Verdict:** the receiver honours the exact at-least-once contract — every attempt acknowledged (200, <5s), but the business action and the durable claim happen exactly once, so Shopify's retry storm (up to 19×/48h) and any manual resend can never double-process an order.
+
 ## 5. IDEMPOTENCY TEST SUITE
 Run from `backend/`:
 ```
@@ -195,5 +218,47 @@ venv/bin/python -m pytest tests/test_webhook_idempotency.py -v
 - 12 tests: atomic claim semantics · Stripe first-delivery/duplicate/bad-signature/replay-window/different-events · Shopify first-delivery/duplicate/bad-HMAC/derived-id dedupe · PII-free health endpoints
 - Works against the real router code with isolated tmp env (DB + logs) — no network needed
 - **Regression gate:** any change to the webhook receivers must keep this suite green (it already caught the root-owned-DB bug and the base64-vs-hex HMAC bug in the initial wiring)
+
+## 6. FAILURE REMEDIATION STEPS (play by play)
+
+Each failure below is ordered: DETECT → DIAGNOSE → FIX → VERIFY. Run them in order; stop when the verify step passes.
+
+### 6.1 Webhook secret missing/rotated (Stripe `whsec_…` or Shopify client secret)
+1. **Detect:** `/stripe/webhook/health` or `/shopify/webhook/health` → `"configured": false`; or journal shows `STRIPE_WEBHOOK_SECRET not set` / `SHOPIFY_CLIENT_SECRET not set`.
+2. **Diagnose:** `ssh root@178.62.46.133` → `cat /etc/aegis/stripe.env` (or `shopify.env`) — missing/empty? If Stripe: the secret may have been rotated in the dashboard (Developers → Webhooks → endpoint → signing secret).
+3. **Fix:**
+   - Stripe: copy the current `whsec_…` from dashboard → `printf 'STRIPE_WEBHOOK_SECRET=%s\n' 'whsec_…' > /etc/aegis/stripe.env && chmod 600 /etc/aegis/stripe.env`.
+   - Shopify: confirm the client secret matches the app in the Partner Dashboard → update `/etc/aegis/shopify.env` the same way.
+   - Then `systemctl daemon-reload && systemctl restart aegis-api.service`.
+4. **Verify:** health endpoints return `"configured": true`; send one signed test event (recipes above) → 200.
+
+### 6.2 Signature verification failing (400s on real deliveries)
+1. **Detect:** journal shows `signature verification FAILED` / `HMAC verification FAILED` while the health endpoint says configured.
+2. **Diagnose:** the 400 is from OUR side → either the secret value differs from the provider's, or the raw body is being altered in transit (proxy re-encoding), or (Stripe) the server clock is skewed >5 min (replay window).
+3. **Fix:** confirm secret (6.1) · confirm nginx doesn't buffer/rewrite the body (check server block; `proxy_request_buffering` off if in doubt) · for clock: `timedatectl set-ntp true && timedatectl status`.
+4. **Verify:** redeliver one event from the provider dashboard; journal shows 200 + one action.
+
+### 6.3 Event log or idempotency DB unwritable (actions duplicated or logging silent)
+1. **Detect:** journal shows `event log write failed: Permission denied` or the idempotency claim count stays 0 while deliveries succeed.
+2. **Diagnose:** `ls -ld /opt/aegis/data` must be `aegis aegis`; `ls -la /opt/aegis/data/*.jsonl /opt/aegis/data/processed_events.db` — if root-owned, the service user can't write.
+3. **Fix:** `chown aegis:aegis /opt/aegis/data /opt/aegis/data/stripe-events.jsonl /opt/aegis/data/shopify-events.jsonl /opt/aegis/data/processed_events.db` (and re-run after any rotation/recreate).
+4. **Verify:** `journalctl -u aegis-api.service --since '1 min ago'` shows no Permission-denied; send a signed test → log line appears.
+
+### 6.4 Receiver down entirely (no health response)
+1. **Detect:** external monitor fails `/stripe/webhook/health` or `/shopify/webhook/health`; Stripe/Shopify dashboards show failed deliveries.
+2. **Diagnose:** `ssh root@178.62.46.133` → `systemctl status aegis-api.service` (dead/crashed?) → `journalctl -u aegis-api.service -e` for the traceback (e.g. disk full, port conflict, code error after deploy).
+3. **Fix:** roll back code if it's a bad deploy: `/opt/aegis/deploy.sh --rollback` (keep the last good backup `api_server.py.bak-*`); else `systemctl restart aegis-api.service`; verify disk: `df -h /opt/aegis`.
+4. **Verify:** health 200 + configured:true; then **redeliver the missed window** (6.5).
+
+### 6.5 Missed events during an outage (reconciliation)
+1. **Detect:** after restoring service, dashboard shows `failed` events (Stripe) or the provider queue dropped them (Shopify 48h window).
+2. **Fix:**
+   - **Stripe:** Dashboard → Developers → Webhooks → endpoint → Events → filter `failed` → **⋮ → Redeliver** each; or API: `POST /v1/events/{id}/retry`. For a wider gap, list `GET /v1/invoices?status=paid` and match against the JSONL log, redelivering anything absent.
+   - **Shopify:** Admin → Settings → Notifications → Webhooks → Recent deliveries → **Resend**. No API bulk-resend — do it per webhook/topic for the affected orders (or rebuild from the store's order list: `GET /admin/api/2024-10/orders.json?status=any&created_at_min=…`).
+3. **Verify:** the gap's event ids appear in `/opt/aegis/data/*-events.jsonl`, each action logged **once** (idempotency guarantees no doubles).
+
+### 6.6 Outage is longer than the provider's retry window
+- **Stripe (~3 days):** events land in `failed`; they are recoverable indefinitely via manual redelivery (6.5).
+- **Shopify (48h / 19 attempts):** dropped deliveries are **not** recoverable from Shopify's queue — rebuild from source (order list / refund list since outage start) and replay by firing the equivalent actions (receipt email, book update, Slack alert) locally, marking them processed with the derived id. Log the incident and reconcile money independently (balance/payout reports).
 
 **END — All IP belongs to JDB Sales.**
