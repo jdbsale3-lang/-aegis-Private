@@ -20,7 +20,9 @@ logger = logging.getLogger("aegis-stripe-webhook")
 router = APIRouter(prefix="/stripe", tags=["stripe"])
 
 # Event log -> /opt/aegis/stripe-events.jsonl (append-only, no DB needed)
-_EVENT_LOG = Path(os.environ.get("AEGIS_STRIPE_EVENT_LOG", "/opt/aegis/data/stripe-events.jsonl"))
+_EVENT_LOG = Path(
+    os.environ.get("AEGIS_STRIPE_EVENT_LOG", "/opt/aegis/data/stripe-events.jsonl")
+)
 
 # Event types we act on. Everything else is logged but ignored (return 200 so
 # Stripe stops retrying).
@@ -62,7 +64,9 @@ def _verify_signature(payload: bytes, sig_header: str, secret: str) -> bool:
     try:
         # Reject timestamps older than 5 minutes (replay protection)
         if abs(time.time() - float(t)) > 300:
-            logger.warning("Stripe webhook timestamp outside 5min window (possible replay)")
+            logger.warning(
+                "Stripe webhook timestamp outside 5min window (possible replay)"
+            )
             return False
     except ValueError:
         return False
@@ -86,7 +90,11 @@ def _log_event(event: dict) -> dict:
             "amount": data.get("amount"),
             "currency": data.get("currency"),
             "customer": data.get("customer"),
-            "email": data.get("customer_details", {}).get("email") if isinstance(data.get("customer_details"), dict) else None,
+            "email": (
+                data.get("customer_details", {}).get("email")
+                if isinstance(data.get("customer_details"), dict)
+                else None
+            ),
         },
     }
     try:
@@ -119,7 +127,9 @@ def _apply_action(record: dict) -> str:
         logger.info("STRIPE: %s", msg)
         return msg
     if ev_type == "invoice.payment_failed":
-        msg = f"PAYMENT FAILED (invoice {obj.get('id')}, customer {obj.get('customer')})"
+        msg = (
+            f"PAYMENT FAILED (invoice {obj.get('id')}, customer {obj.get('customer')})"
+        )
         logger.warning("STRIPE: %s", msg)
         return msg
     return "logged-only"
@@ -131,19 +141,27 @@ async def stripe_webhook(request: Request):
     secret = _webhook_secret()
     if not secret:
         logger.error("STRIPE_WEBHOOK_SECRET not set - rejecting webhook")
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"error": "webhook not configured"})
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "webhook not configured"},
+        )
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
 
     if not _verify_signature(payload, sig_header, secret):
         logger.warning("Stripe webhook signature verification FAILED")
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "invalid signature"})
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"error": "invalid signature"},
+        )
 
     try:
         event = json.loads(payload)
     except json.JSONDecodeError:
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "invalid JSON"})
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, content={"error": "invalid JSON"}
+        )
 
     record = _log_event(event)
     # Idempotency: claim by event.id BEFORE any side effect. First delivery -> True.
@@ -172,7 +190,11 @@ async def webhook_status():
             recent = [json.loads(l) for l in lines[-5:]]
     except Exception:
         pass
-    return {"configured": secret_set, "event_log": str(_EVENT_LOG), "recent_events": recent}
+    return {
+        "configured": secret_set,
+        "event_log": str(_EVENT_LOG),
+        "recent_events": recent,
+    }
 
 
 @router.get("/webhook/health")

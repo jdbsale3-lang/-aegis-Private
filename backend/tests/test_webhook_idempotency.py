@@ -11,6 +11,7 @@ Proves the at-least-once webhook contract for BOTH receivers (Stripe + Shopify):
 Run from backend/:  venv/bin/python -m pytest tests/test_webhook_idempotency.py -v
 All IP belongs to JDB Sales.
 """
+
 import base64
 import hashlib
 import hmac
@@ -56,17 +57,32 @@ def stripe_event(evt_id: str, evt_type: str, amount: int = 100) -> dict:
         "api_version": "2024-06-20",
         "created": int(time.time()),
         "type": evt_type,
-        "data": {"object": {"id": f"in_{evt_id}", "status": "paid", "amount": amount, "currency": "gbp", "customer": "cus_test"}},
+        "data": {
+            "object": {
+                "id": f"in_{evt_id}",
+                "status": "paid",
+                "amount": amount,
+                "currency": "gbp",
+                "customer": "cus_test",
+            }
+        },
     }
 
 
 def stripe_sign(payload: bytes, secret: str = "whsec_test_secret_123") -> str:
     t = str(int(time.time()))
-    sig = hmac.new(secret.encode(), f"{t}.{payload.decode()}".encode(), hashlib.sha256).hexdigest()
+    sig = hmac.new(
+        secret.encode(), f"{t}.{payload.decode()}".encode(), hashlib.sha256
+    ).hexdigest()
     return f"t={t},v1={sig}"
 
 
-def deliver_stripe(evt_id: str, evt_type: str = "invoice.payment_succeeded", amount: int = 100, secret: str | None = None):
+def deliver_stripe(
+    evt_id: str,
+    evt_type: str = "invoice.payment_succeeded",
+    amount: int = 100,
+    secret: str | None = None,
+):
     evt = stripe_event(evt_id, evt_type, amount)
     body = json.dumps(evt).encode()
     headers = {"Content-Type": "application/json"}
@@ -77,20 +93,33 @@ def deliver_stripe(evt_id: str, evt_type: str = "invoice.payment_succeeded", amo
     return client.post("/stripe/webhook", content=body, headers=headers)
 
 
-def shopify_sign(payload: bytes, secret: str = "b22f9e4e6286836e699a5292232140c1") -> str:
+def shopify_sign(
+    payload: bytes, secret: str = "b22f9e4e6286836e699a5292232140c1"
+) -> str:
     digest = hmac.new(secret.encode(), payload, hashlib.sha256).digest()
     return base64.b64encode(digest).decode()
 
 
-def deliver_shopify(webhook_id: str, topic: str = "orders/paid", secret: str | None = None):
-    body = json.dumps({"id": webhook_id, "order_number": 1001, "total_price": "129.00", "currency": "GBP"}).encode()
+def deliver_shopify(
+    webhook_id: str, topic: str = "orders/paid", secret: str | None = None
+):
+    body = json.dumps(
+        {
+            "id": webhook_id,
+            "order_number": 1001,
+            "total_price": "129.00",
+            "currency": "GBP",
+        }
+    ).encode()
     headers = {
         "Content-Type": "application/json",
         "X-Shopify-Topic": topic,
         "X-Shopify-Shop-Domain": "test-store.myshopify.com",
         "X-Shopify-Webhook-Id": webhook_id,
         "X-Shopify-Api-Version": "2024-10",
-        "X-Shopify-Hmac-Sha256": shopify_sign(body) if secret is None else shopify_sign(body, secret),
+        "X-Shopify-Hmac-Sha256": (
+            shopify_sign(body) if secret is None else shopify_sign(body, secret)
+        ),
     }
     return client.post("/shopify/webhook", content=body, headers=headers)
 
@@ -129,8 +158,12 @@ def test_stripe_duplicate_redelivery_200_but_no_double_action():
 def test_stripe_different_events_each_process_once():
     c0 = count_processed(kind="stripe:invoice.paid")
     for i in range(3):
-        deliver_stripe(f"evt_stripe_paid_{i}", evt_type="invoice.paid", amount=1000 * (i + 1))
-        deliver_stripe(f"evt_stripe_paid_{i}", evt_type="invoice.paid", amount=1000 * (i + 1))  # dup
+        deliver_stripe(
+            f"evt_stripe_paid_{i}", evt_type="invoice.paid", amount=1000 * (i + 1)
+        )
+        deliver_stripe(
+            f"evt_stripe_paid_{i}", evt_type="invoice.paid", amount=1000 * (i + 1)
+        )  # dup
     assert count_processed(kind="stripe:invoice.paid") == c0 + 3
 
 
@@ -140,9 +173,12 @@ def test_stripe_bad_signature_rejected_and_not_claimed():
     assert r.status_code == 400
     evt = stripe_event(evt_id, "invoice.payment_succeeded")
     body = json.dumps(evt).encode()
-    r2 = client.post("/stripe/webhook", content=body, headers={"Content-Type": "application/json"})  # no signature
+    r2 = client.post(
+        "/stripe/webhook", content=body, headers={"Content-Type": "application/json"}
+    )  # no signature
     assert r2.status_code == 400
     from modules.webhook_common.store import is_processed
+
     assert is_processed(evt_id) is False
 
 
@@ -150,8 +186,17 @@ def test_stripe_replay_window_rejects_old_timestamp():
     evt = stripe_event("evt_stripe_old", "invoice.payment_succeeded")
     body = json.dumps(evt).encode()
     t = str(int(time.time()) - 3600)  # 1 hour old -> outside 5-min window
-    sig = hmac.new(b"whsec_test_secret_123", f"{t}.{body.decode()}".encode(), hashlib.sha256).hexdigest()
-    r = client.post("/stripe/webhook", content=body, headers={"Content-Type": "application/json", "Stripe-Signature": f"t={t},v1={sig}"})
+    sig = hmac.new(
+        b"whsec_test_secret_123", f"{t}.{body.decode()}".encode(), hashlib.sha256
+    ).hexdigest()
+    r = client.post(
+        "/stripe/webhook",
+        content=body,
+        headers={
+            "Content-Type": "application/json",
+            "Stripe-Signature": f"t={t},v1={sig}",
+        },
+    )
     assert r.status_code == 400
 
 
@@ -174,6 +219,7 @@ def test_shopify_bad_hmac_rejected_and_not_claimed():
     r = deliver_shopify(wid, secret="wrong_secret")
     assert r.status_code == 400
     from modules.webhook_common.store import is_processed
+
     assert is_processed(wid) is False
 
 
@@ -186,8 +232,14 @@ def test_shopify_derived_id_dedupes_when_header_missing():
         "X-Shopify-Shop-Domain": "test-store.myshopify.com",
         "X-Shopify-Hmac-Sha256": shopify_sign(body),
     }
-    assert client.post("/shopify/webhook", content=body, headers=headers).status_code == 200
-    assert client.post("/shopify/webhook", content=body, headers=headers).status_code == 200
+    assert (
+        client.post("/shopify/webhook", content=body, headers=headers).status_code
+        == 200
+    )
+    assert (
+        client.post("/shopify/webhook", content=body, headers=headers).status_code
+        == 200
+    )
     assert count_processed(kind="shopify:orders/create") == 1
 
 

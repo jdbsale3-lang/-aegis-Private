@@ -23,7 +23,9 @@ _lock = threading.Lock()
 def _db_path() -> Path:
     # /opt/aegis/data is the app's writable dir (owned aegis:aegis). /opt/aegis
     # itself is root-owned — do NOT create the db there or claims fail silently.
-    return Path(os.environ.get("AEGIS_PROCESSED_DB", "/opt/aegis/data/processed_events.db"))
+    return Path(
+        os.environ.get("AEGIS_PROCESSED_DB", "/opt/aegis/data/processed_events.db")
+    )
 
 
 def init_store() -> Path:
@@ -66,7 +68,9 @@ def is_processed(event_id: str) -> bool:
     """Read-only duplicate check (for reporting/tests)."""
     try:
         with sqlite3.connect(_db_path(), timeout=10) as con:
-            cur = con.execute("SELECT 1 FROM processed_events WHERE event_id = ?", (event_id,))
+            cur = con.execute(
+                "SELECT 1 FROM processed_events WHERE event_id = ?", (event_id,)
+            )
             return cur.fetchone() is not None
     except Exception:
         return False
@@ -82,7 +86,9 @@ def count_processed(kind: str | None = None) -> int:
     try:
         with sqlite3.connect(_db_path(), timeout=10) as con:
             if kind:
-                cur = con.execute("SELECT COUNT(*) FROM processed_events WHERE kind = ?", (kind,))
+                cur = con.execute(
+                    "SELECT COUNT(*) FROM processed_events WHERE kind = ?", (kind,)
+                )
             else:
                 cur = con.execute("SELECT COUNT(*) FROM processed_events")
             return int(cur.fetchone()[0])

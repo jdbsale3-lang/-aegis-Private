@@ -19,7 +19,9 @@ logger = logging.getLogger("aegis-shopify-webhook")
 
 router = APIRouter(prefix="/shopify", tags=["shopify"])
 
-_EVENT_LOG = Path(os.environ.get("AEGIS_SHOPIFY_EVENT_LOG", "/opt/aegis/data/shopify-events.jsonl"))
+_EVENT_LOG = Path(
+    os.environ.get("AEGIS_SHOPIFY_EVENT_LOG", "/opt/aegis/data/shopify-events.jsonl")
+)
 
 # Topics we act on. Everything else is logged but ignored (200 = acknowledged).
 HANDLED_TOPICS = {
@@ -49,6 +51,7 @@ def _verify_hmac(payload: bytes, header_value: str, secret: str) -> bool:
     if not header_value:
         return False
     import base64
+
     digest = hmac.new(secret.encode(), payload, hashlib.sha256).digest()
     expected = base64.b64encode(digest).decode()
     return hmac.compare_digest(expected, header_value.strip())
@@ -100,7 +103,9 @@ async def shopify_webhook(request: Request):
     secret = _client_secret()
     if not secret:
         logger.error("SHOPIFY_CLIENT_SECRET not set - rejecting webhook")
-        return JSONResponse(status_code=500, content={"error": "webhook not configured"})
+        return JSONResponse(
+            status_code=500, content={"error": "webhook not configured"}
+        )
 
     payload = await request.body()
     hmac_header = request.headers.get("x-shopify-hmac-sha256", "")
@@ -121,7 +126,14 @@ async def shopify_webhook(request: Request):
     except json.JSONDecodeError:
         return JSONResponse(status_code=400, content={"error": "invalid JSON"})
 
-    summary = {"id": data.get("id"), "order_number": data.get("order_number"), "total_price": data.get("total_price"), "currency": data.get("currency"), "order_id": data.get("order_id"), "amount": data.get("amount")}
+    summary = {
+        "id": data.get("id"),
+        "order_number": data.get("order_number"),
+        "total_price": data.get("total_price"),
+        "currency": data.get("currency"),
+        "order_id": data.get("order_id"),
+        "amount": data.get("amount"),
+    }
     record = _log_event(topic, webhook_id, shop, summary)
 
     # Idempotency: claim by webhook id BEFORE the action. First delivery -> True.
@@ -146,7 +158,12 @@ async def webhook_status():
             recent = [json.loads(l) for l in lines[-5:]]
     except Exception:
         pass
-    return {"configured": secret_set, "event_log": str(_EVENT_LOG), "recent_events": recent, "processed_count": count_processed()}
+    return {
+        "configured": secret_set,
+        "event_log": str(_EVENT_LOG),
+        "recent_events": recent,
+        "processed_count": count_processed(),
+    }
 
 
 @router.get("/webhook/health")
