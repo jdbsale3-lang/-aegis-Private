@@ -27,7 +27,7 @@ jobs:
         run: echo "Deploying ref $GITHUB_SHA to $DEPLOY_HOST"
 
       - name: Deploy over SSH (repo pull + docker compose up)
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.AEGIS_DEPLOY_HOST }}
           username: ${{ secrets.AEGIS_DEPLOY_USER }}
