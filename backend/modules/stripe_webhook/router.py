@@ -7,13 +7,13 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from modules.webhook_common.store import claim, init_store, count_processed
+from modules.webhook_common.store import claim
 
 logger = logging.getLogger("aegis-stripe-webhook")
 
@@ -76,7 +76,7 @@ def _log_event(event: dict) -> dict:
     ev_type = event.get("type", "unknown")
     data = event.get("data", {}).get("object", {})
     record = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "id": event.get("id"),
         "type": ev_type,
         "api_version": event.get("api_version"),

@@ -7,13 +7,13 @@ import hmac
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 
-from modules.webhook_common.store import claim, init_store, count_processed
+from modules.webhook_common.store import claim, count_processed
 
 logger = logging.getLogger("aegis-shopify-webhook")
 
@@ -56,7 +56,7 @@ def _verify_hmac(payload: bytes, header_value: str, secret: str) -> bool:
 
 def _log_event(topic: str, webhook_id: str, shop: str, summary: dict) -> dict:
     record = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "webhook_id": webhook_id,
         "topic": topic,
         "shop": shop,

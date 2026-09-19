@@ -18,7 +18,6 @@ import json
 import os
 import time
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -31,9 +30,9 @@ os.environ["AEGIS_SHOPIFY_EVENT_LOG"] = os.path.join(TEST_DIR, "shopify.jsonl")
 os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_test_secret_123"
 os.environ["SHOPIFY_CLIENT_SECRET"] = "b22f9e4e6286836e699a5292232140c1"
 
-from modules.webhook_common.store import claim, count_processed, init_store  # noqa: E402
-from modules.stripe_webhook.router import router as stripe_router  # noqa: E402
-from modules.shopify_webhook.router import router as shopify_router  # noqa: E402
+from modules.shopify_webhook.router import router as shopify_router
+from modules.stripe_webhook.router import router as stripe_router
+from modules.webhook_common.store import claim, count_processed, init_store
 
 # fresh store per run
 for f in ("processed.db", "stripe.jsonl", "shopify.jsonl"):
