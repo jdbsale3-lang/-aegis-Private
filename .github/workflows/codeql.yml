@@ -21,13 +21,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # python only — the repo has no JavaScript/TypeScript sources; the old
+        # javascript matrix entry (3-week-old red status) was removed with it.
         language: ["python"]
     steps:
       - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
